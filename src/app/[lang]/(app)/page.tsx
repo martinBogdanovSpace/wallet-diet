@@ -2,6 +2,7 @@ import { Suspense } from "react";
 import Link from "next/link";
 import { ArrowDownLeft, ArrowUpRight, ChevronRight, TrendingDown, TrendingUp, Wallet } from "lucide-react";
 import {
+  getBalanceBefore,
   getBudgets,
   getCashBalance,
   getCategories,
@@ -52,12 +53,13 @@ async function Dashboard({ searchParams }: { searchParams: PageProps<"/[lang]">[
     if (sameDay < prevRange.end) prevRange.end = sameDay;
   }
 
-  const [txs, prevTxs, categories, budgets, cash] = await Promise.all([
+  const [txs, prevTxs, categories, budgets, cash, carried] = await Promise.all([
     getTransactions(monthRange(month)),
     getTransactions(prevRange),
     getCategories(),
     getBudgets(),
     getCashBalance(),
+    getBalanceBefore(`${month}-01`),
   ]);
   const catById = new Map(categories.map((c) => [c.id, c]));
   const memberById = new Map(ctx.members.map((p) => [p.id, p]));
@@ -66,6 +68,9 @@ async function Dashboard({ searchParams }: { searchParams: PageProps<"/[lang]">[
   const expenses = sumBy(txs, "expense");
   const prevExpenses = sumBy(prevTxs, "expense");
   const balance = income - expenses;
+  // Money left over from earlier months is added on top, and shown as its own line.
+  const showCarried = carried !== null && carried !== 0;
+  const signed = (cents: number) => `${cents < 0 ? "−" : "+"}${money(Math.abs(cents))}`;
   const expenseDiff = expenses - prevExpenses;
 
   const byCategory = new Map<string, number>();
@@ -96,10 +101,28 @@ async function Dashboard({ searchParams }: { searchParams: PageProps<"/[lang]">[
 
       {/* Balance */}
       <section className="mt-4 overflow-hidden rounded-[28px] bg-pine p-6 text-on-pine shadow-lg shadow-pine/15">
-        <p className="text-sm text-on-pine/75">{isCurrent ? t.dashboard.leftThisMonth : t.dashboard.balance}</p>
-        <p className="mt-1 font-serif text-[44px] font-medium leading-none tracking-tight tabular-nums">
-          {money(balance)}
+        <p className="text-sm text-on-pine/75">
+          {showCarried
+            ? isCurrent
+              ? t.dashboard.available
+              : t.dashboard.monthEnd
+            : isCurrent
+              ? t.dashboard.leftThisMonth
+              : t.dashboard.balance}
         </p>
+        <p className="mt-1 font-serif text-[44px] font-medium leading-none tracking-tight tabular-nums">
+          {money(showCarried ? carried + balance : balance)}
+        </p>
+        {showCarried && (
+          <p className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-[13px] text-on-pine/80">
+            <span>
+              {t.dashboard.thisMonth} <span className="font-semibold tabular-nums">{signed(balance)}</span>
+            </span>
+            <span>
+              {t.dashboard.carried} <span className="font-semibold tabular-nums">{signed(carried)}</span>
+            </span>
+          </p>
+        )}
         <div className="mt-6 grid grid-cols-2 divide-x divide-on-pine/15 rounded-[16px] bg-on-pine/10">
           <Link
             href={`/history?type=income${monthQuery ? `&${monthQuery}` : ""}`}

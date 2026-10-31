@@ -74,6 +74,10 @@ export const en = {
   dashboard: {
     hi: "Hi, {name}",
     leftThisMonth: "Left this month",
+    available: "Available",
+    monthEnd: "At the end of the month",
+    thisMonth: "This month",
+    carried: "Carried over",
     balance: "Balance",
     income: "Income",
     expenses: "Expenses",

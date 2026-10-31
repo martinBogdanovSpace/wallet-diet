@@ -89,6 +89,20 @@ export async function getCashBalance() {
   return Number(must(await supabase.rpc("cash_balance"), "cash balance"));
 }
 
+/**
+ * Income minus expenses of everything before a date: the money carried into that month.
+ * Null while the database function is missing, so the home screen still works without it.
+ */
+export async function getBalanceBefore(date: string) {
+  const { supabase } = await getContext();
+  const { data, error } = await supabase.rpc("balance_before", { p_date: date });
+  if (error) {
+    if (error.code === "PGRST202") return null;
+    throw new Error(`Could not load carried-over balance: ${error.message}`);
+  }
+  return Number(data);
+}
+
 export async function getBudgets() {
   const { supabase, household } = await getContext();
   const data = must(

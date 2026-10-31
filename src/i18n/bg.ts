@@ -76,6 +76,10 @@ export const bg: Dict = {
   dashboard: {
     hi: "Здравей, {name}",
     leftThisMonth: "Остават този месец",
+    available: "Налични",
+    monthEnd: "В края на месеца",
+    thisMonth: "Този месец",
+    carried: "Пренесени",
     balance: "Баланс",
     income: "Приходи",
     expenses: "Разходи",

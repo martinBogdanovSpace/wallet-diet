@@ -23,7 +23,7 @@ Shared income & expense tracker for two people. Next.js 16 + Supabase, installab
 
 1. Create a free project at <https://supabase.com>.
 2. **SQL Editor** → paste and run each file in `supabase/migrations/`, oldest first
-   (`20261030000000_init.sql`, then `20261031000000_hardening.sql`).
+   (`20261030000000_init.sql`, `20261031000000_hardening.sql`, `20261101000000_carry_over.sql`).
 3. **Authentication → Sign In / Providers → Email**: turn **off** "Confirm email" (simplest for two people),
    or keep it on and add `https://<your-domain>/auth/callback` under **Authentication → URL Configuration → Redirect URLs**.
 4. **Project Settings → API Keys**: copy the project URL and the **publishable** key.
