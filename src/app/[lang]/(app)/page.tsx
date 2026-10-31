@@ -1,6 +1,14 @@
 import { Suspense } from "react";
 import Link from "next/link";
-import { ArrowDownLeft, ArrowUpRight, ChevronRight, TrendingDown, TrendingUp, Wallet } from "lucide-react";
+import {
+  ArrowDownLeft,
+  ArrowUpRight,
+  ChevronRight,
+  TrendingDown,
+  TrendingUp,
+  Wallet,
+  type LucideIcon,
+} from "lucide-react";
 import {
   getBalanceBefore,
   getBudgets,
@@ -100,7 +108,7 @@ async function Dashboard({ searchParams }: { searchParams: PageProps<"/[lang]">[
       </header>
 
       {/* Balance */}
-      <section className="mt-4 overflow-hidden rounded-[28px] bg-pine p-6 text-on-pine shadow-lg shadow-pine/15">
+      <section className="mt-4 overflow-hidden rounded-[28px] bg-pine p-5 text-on-pine sm:p-6 shadow-lg shadow-pine/15">
         <p className="text-sm text-on-pine/75">
           {showCarried
             ? isCurrent
@@ -124,32 +132,20 @@ async function Dashboard({ searchParams }: { searchParams: PageProps<"/[lang]">[
           </p>
         )}
         <div className="mt-6 grid grid-cols-2 divide-x divide-on-pine/15 rounded-[16px] bg-on-pine/10">
-          <Link
+          <TotalLink
             href={`/history?type=income${monthQuery ? `&${monthQuery}` : ""}`}
-            className="flex items-center gap-2.5 rounded-l-[16px] p-3.5 transition hover:bg-on-pine/10"
-          >
-            <span className="flex h-8 w-8 items-center justify-center rounded-full bg-on-pine/15">
-              <ArrowDownLeft className="h-4 w-4" />
-            </span>
-            <span className="min-w-0">
-              <span className="block text-xs text-on-pine/70">{t.dashboard.income}</span>
-              <span className="block truncate font-semibold tabular-nums">+{money(income)}</span>
-            </span>
-            <ChevronRight className="ml-auto h-4 w-4 shrink-0 text-on-pine/50" />
-          </Link>
-          <Link
+            Icon={ArrowDownLeft}
+            label={t.dashboard.income}
+            amount={`+${money(income)}`}
+            className="rounded-l-[16px]"
+          />
+          <TotalLink
             href={`/history?type=expense${monthQuery ? `&${monthQuery}` : ""}`}
-            className="flex items-center gap-2.5 rounded-r-[16px] p-3.5 transition hover:bg-on-pine/10"
-          >
-            <span className="flex h-8 w-8 items-center justify-center rounded-full bg-on-pine/15">
-              <ArrowUpRight className="h-4 w-4" />
-            </span>
-            <span className="min-w-0">
-              <span className="block text-xs text-on-pine/70">{t.dashboard.expenses}</span>
-              <span className="block truncate font-semibold tabular-nums">−{money(expenses)}</span>
-            </span>
-            <ChevronRight className="ml-auto h-4 w-4 shrink-0 text-on-pine/50" />
-          </Link>
+            Icon={ArrowUpRight}
+            label={t.dashboard.expenses}
+            amount={`−${money(expenses)}`}
+            className="rounded-r-[16px]"
+          />
         </div>
         {prevExpenses > 0 && expenseDiff !== 0 && (
           <p className="mt-4 flex items-center gap-2 text-[13px] text-on-pine/80">
@@ -299,6 +295,34 @@ async function Dashboard({ searchParams }: { searchParams: PageProps<"/[lang]">[
         )}
       </Section>
     </div>
+  );
+}
+
+/** Income or expenses on the balance card: label on top, so the amount gets the full width. */
+function TotalLink({
+  href,
+  Icon,
+  label,
+  amount,
+  className,
+}: {
+  href: string;
+  Icon: LucideIcon;
+  label: string;
+  amount: string;
+  className: string;
+}) {
+  return (
+    <Link href={href} className={`block min-w-0 px-3 py-3.5 transition hover:bg-on-pine/10 ${className}`}>
+      <span className="flex items-center gap-1.5 text-xs text-on-pine/75">
+        <Icon className="h-3.5 w-3.5 shrink-0" />
+        <span className="truncate">{label}</span>
+        <ChevronRight className="ml-auto h-3.5 w-3.5 shrink-0 text-on-pine/50" />
+      </span>
+      <span className="mt-1 block whitespace-nowrap text-[clamp(14px,4.4vw,17px)] font-semibold tabular-nums">
+        {amount}
+      </span>
+    </Link>
   );
 }
 
