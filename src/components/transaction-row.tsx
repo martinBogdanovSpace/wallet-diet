@@ -7,6 +7,7 @@ import type { Dict } from "@/i18n/dictionaries";
 import type { Category, Profile, Transaction } from "@/lib/types";
 import { MethodIcon } from "@/components/method-icon";
 import { Tile } from "@/components/ui";
+import { openEditor } from "@/components/quick-add";
 
 export function describe(tx: Transaction, t: Dict, category?: Category) {
   if (tx.type === "withdrawal") return { icon: "🏧", title: t.tx.atmWithdrawal };
@@ -65,7 +66,14 @@ export function TransactionRow({
 
   const className = "flex items-center gap-3 px-4 py-3";
   return editable ? (
-    <Link href={`/tx/${tx.id}`} className={`${className} transition hover:bg-cream/60 active:bg-cream-200/60`}>
+    <Link
+      href={`/tx/${tx.id}`}
+      // Edit in the drawer; the edit page stays for new tabs and for before the drawer has loaded.
+      onClick={(e) => {
+        if (!e.metaKey && !e.ctrlKey && !e.shiftKey && openEditor(tx)) e.preventDefault();
+      }}
+      className={`${className} transition hover:bg-cream/60 active:bg-cream-200/60`}
+    >
       {content}
     </Link>
   ) : (

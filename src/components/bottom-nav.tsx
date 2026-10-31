@@ -1,11 +1,11 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { History, House, Plus, Settings2, Target } from "lucide-react";
 import { useI18n } from "@/i18n/client";
 import { Logo } from "@/components/logo";
-import { openQuickAdd } from "@/components/quick-add";
+import { addPageHref, openQuickAdd } from "@/components/quick-add";
 
 const TABS = [
   { href: "/", key: "home", Icon: House },
@@ -32,6 +32,7 @@ export function SideNav() {
 /** Phones: a floating bar with four tabs and the add button in the middle. Rendered without a pathname as the prerendered fallback. */
 export function NavBar({ pathname }: { pathname: string | null }) {
   const { t } = useI18n();
+  const router = useRouter();
   const tab = ({ href, key, Icon }: (typeof TABS)[number]) => {
     const active = isActive(href, pathname);
     return (
@@ -57,9 +58,9 @@ export function NavBar({ pathname }: { pathname: string | null }) {
         <li className="flex justify-center">
           <button
             type="button"
-            onClick={() => openQuickAdd()}
+            onClick={() => openQuickAdd() || router.push(addPageHref())}
             aria-label={t.nav.add}
-            className="flex h-14 w-14 items-center justify-center rounded-[20px] bg-pine text-cream shadow-lg shadow-pine/30 transition active:scale-95"
+            className="flex h-14 w-14 items-center justify-center rounded-[20px] bg-pine text-on-pine shadow-lg shadow-pine/30 transition active:scale-95"
           >
             <Plus className="h-7 w-7" strokeWidth={2.25} />
           </button>
@@ -73,6 +74,7 @@ export function NavBar({ pathname }: { pathname: string | null }) {
 /** Tablets and up: a side menu with the brand and a prominent add button. */
 export function SideBar({ pathname }: { pathname: string | null }) {
   const { t } = useI18n();
+  const router = useRouter();
   return (
     <aside className="sticky top-0 hidden h-dvh w-60 shrink-0 flex-col gap-7 border-r border-line-strong/70 px-4 py-7 md:flex">
       <Link href="/" className="px-2.5">
@@ -80,8 +82,8 @@ export function SideBar({ pathname }: { pathname: string | null }) {
       </Link>
       <button
         type="button"
-        onClick={() => openQuickAdd()}
-        className="flex h-11 items-center justify-center gap-2 rounded-[14px] bg-pine text-[15px] font-semibold text-cream shadow-sm hover:bg-pine-dark"
+        onClick={() => openQuickAdd() || router.push(addPageHref())}
+        className="flex h-11 items-center justify-center gap-2 rounded-[14px] bg-pine text-[15px] font-semibold text-on-pine shadow-sm hover:bg-pine-dark"
       >
         <Plus className="h-5 w-5" strokeWidth={2.25} />
         {t.nav.add}

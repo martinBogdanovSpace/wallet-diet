@@ -20,7 +20,7 @@ export function MonthSwitcher({
   /** "bar" spans the width; "pill" is the compact oatmeal pill for headers. */
   variant?: "bar" | "pill";
 }) {
-  const { locale } = useI18n();
+  const { locale, t } = useI18n();
   const href = (m: string) => {
     const search = new URLSearchParams();
     for (const [k, v] of Object.entries(params)) if (v && k !== "m") search.set(k, v);
@@ -39,18 +39,18 @@ export function MonthSwitcher({
         pill ? "bg-cream-200" : "justify-between border border-line bg-surface"
       }`}
     >
-      <Link href={href(shiftMonth(month, -1))} className={arrow} aria-label="‹">
+      <Link href={href(shiftMonth(month, -1))} className={arrow} aria-label={t.common.prevMonth}>
         <ChevronLeft className="h-5 w-5" />
       </Link>
       <span className={pill ? "px-1 text-sm font-semibold" : "font-serif text-[17px] font-medium"}>
         {formatMonth(month, locale)}
       </span>
       {month < current ? (
-        <Link href={href(shiftMonth(month, 1))} className={arrow} aria-label="›">
+        <Link href={href(shiftMonth(month, 1))} className={arrow} aria-label={t.common.nextMonth}>
           <ChevronRight className="h-5 w-5" />
         </Link>
       ) : (
-        <span className={`${arrow} pointer-events-none opacity-25`}>
+        <span aria-hidden="true" className={`${arrow} pointer-events-none opacity-25`}>
           <ChevronRight className="h-5 w-5" />
         </span>
       )}

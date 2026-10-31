@@ -28,7 +28,7 @@ export function OnboardingForms() {
         >
           <label className="block">
             <Label>{t.onboarding.name}</Label>
-            <Input name="name" placeholder={t.onboarding.namePlaceholder} required />
+            <Input name="name" placeholder={t.onboarding.namePlaceholder} maxLength={40} required />
           </label>
           <ErrorText>{createState.error}</ErrorText>
           <Button className="w-full" disabled={creating}>

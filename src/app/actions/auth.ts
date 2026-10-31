@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getActionI18n } from "@/i18n/server";
 import { friendlyError } from "@/i18n/errors";
+import { MAX_NAME } from "@/lib/limits";
 
 export type AuthState = { error?: string; message?: string };
 
@@ -29,10 +30,12 @@ export async function signUp(_: AuthState, formData: FormData): Promise<AuthStat
   const name = String(formData.get("name") ?? "").trim();
   const password = String(formData.get("password") ?? "");
   if (!name) return { error: t.errors.enterName };
+  if (name.length > MAX_NAME) return { error: t.errors.nameTooLong };
   if (password.length < 8) return { error: t.errors.passwordShort };
 
   const supabase = await createClient();
-  const origin = (await headers()).get("origin") ?? "";
+  // The confirmation link must point at the real site, so prefer the configured address.
+  const origin = process.env.NEXT_PUBLIC_SITE_URL ?? (await headers()).get("origin") ?? "";
   const next = safeNext(formData.get("next"));
   const { data, error } = await supabase.auth.signUp({
     email: String(formData.get("email") ?? "").trim(),

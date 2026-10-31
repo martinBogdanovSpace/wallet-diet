@@ -4,9 +4,18 @@ function capitalize(s: string) {
   return s.charAt(0).toUpperCase() + s.slice(1);
 }
 
-/** Today's date (YYYY-MM-DD) in the given IANA timezone. */
-export function todayIn(timezone: string) {
-  return new Intl.DateTimeFormat("en-CA", { timeZone: timezone }).format(new Date());
+/** The YYYY-MM-DD date `days` days after `date` (negative goes back). */
+export function addDays(date: string, days: number) {
+  const d = new Date(`${date}T00:00:00Z`);
+  d.setUTCDate(d.getUTCDate() + days);
+  return d.toISOString().slice(0, 10);
+}
+
+/** Whether a string is a real YYYY-MM-DD calendar date. */
+export function isValidDate(date: string) {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) return false;
+  const d = new Date(`${date}T00:00:00Z`);
+  return !Number.isNaN(d.getTime()) && d.toISOString().slice(0, 10) === date;
 }
 
 /** "2026-10" for a YYYY-MM-DD date. */
@@ -50,9 +59,7 @@ export function formatDay(
   labels: { today: string; yesterday: string },
 ) {
   if (date === today) return labels.today;
-  const t = new Date(`${today}T00:00:00Z`);
-  t.setUTCDate(t.getUTCDate() - 1);
-  if (date === t.toISOString().slice(0, 10)) return labels.yesterday;
+  if (date === addDays(today, -1)) return labels.yesterday;
   return new Date(`${date}T00:00:00Z`).toLocaleDateString(locale === "en" ? "en-GB" : INTL_LOCALE[locale], {
     weekday: "short",
     day: "numeric",

@@ -14,6 +14,10 @@ import { useI18n } from "@/i18n/client";
 import type { Category, Method, Recurring } from "@/lib/types";
 import { MethodIcon } from "@/components/method-icon";
 import { Button, ErrorText, Input, Label, Segmented, Tile, fieldClass } from "@/components/ui";
+import { Sheet } from "@/components/sheet";
+import { toast } from "@/components/toast";
+import { MAX_NOTE } from "@/lib/limits";
+import { isNetworkError } from "@/lib/offline-queue";
 
 export function RecurringManager({
   rules,
@@ -27,18 +31,6 @@ export function RecurringManager({
   const { t, f, money, locale } = useI18n();
   const [editing, setEditing] = useState<Recurring | "new" | null>(null);
   const catById = new Map(categories.map((c) => [c.id, c]));
-
-  if (editing) {
-    return (
-      <RecurringForm
-        key={editing === "new" ? "new" : editing.id}
-        initial={editing === "new" ? undefined : editing}
-        categories={categories}
-        today={today}
-        onDone={() => setEditing(null)}
-      />
-    );
-  }
 
   const monthlyNet = rules
     .filter((r) => r.active)
@@ -98,6 +90,18 @@ export function RecurringManager({
         <Plus className="h-[18px] w-[18px]" />
         {t.recurring.add}
       </Button>
+
+      <Sheet open={editing !== null} onClose={() => setEditing(null)} label={t.recurring.title}>
+        {editing && (
+          <RecurringForm
+            key={editing === "new" ? "new" : editing.id}
+            initial={editing === "new" ? undefined : editing}
+            categories={categories}
+            today={today}
+            onDone={() => setEditing(null)}
+          />
+        )}
+      </Sheet>
     </div>
   );
 }
@@ -123,20 +127,26 @@ function RecurringForm({
   const [note, setNote] = useState(initial?.note ?? "");
   const [error, setError] = useState<string>();
   const [pending, startTransition] = useTransition();
+  const [confirmingDelete, setConfirmingDelete] = useState(false);
 
   const options = categories.filter((c) => c.kind === type && (!c.archived || c.id === categoryId));
 
   function run(action: () => Promise<{ error?: string }>) {
     startTransition(async () => {
-      const result = await action();
-      if (result.error) return setError(result.error);
-      onDone();
+      try {
+        const result = await action();
+        if (result.error) return setError(result.error);
+        onDone();
+        toast(t.common.saved);
+      } catch (err) {
+        setError(isNetworkError(err) ? t.errors.offline : t.errors.generic);
+      }
     });
   }
 
   return (
     <form
-      className="space-y-5 pb-4"
+      className="space-y-5"
       onSubmit={(e) => {
         e.preventDefault();
         const cents = parseAmountToCents(amount);
@@ -155,6 +165,7 @@ function RecurringForm({
         );
       }}
     >
+      <h2 className="font-serif text-[22px] font-medium">{initial ? t.common.edit : t.recurring.add}</h2>
       <Segmented
         value={type}
         onChange={(next) => {
@@ -168,7 +179,12 @@ function RecurringForm({
       />
       <label className="block">
         <Label>{t.recurring.name}</Label>
-        <Input value={note} onChange={(e) => setNote(e.target.value)} placeholder={t.recurring.namePlaceholder} />
+        <Input
+          value={note}
+          maxLength={MAX_NOTE}
+          onChange={(e) => setNote(e.target.value)}
+          placeholder={t.recurring.namePlaceholder}
+        />
       </label>
       <div className="grid grid-cols-2 gap-3">
         <label className="block">
@@ -259,13 +275,15 @@ function RecurringForm({
           </Button>
           <Button
             type="button"
-            variant="ghost"
-            className="flex-1 text-danger hover:bg-expense-50"
+            variant={confirmingDelete ? "confirm" : "danger"}
+            className="flex-1"
             disabled={pending}
-            onClick={() => run(() => deleteRecurring(initial.id))}
+            onClick={() =>
+              confirmingDelete ? run(() => deleteRecurring(initial.id)) : setConfirmingDelete(true)
+            }
           >
             <Trash2 className="h-[18px] w-[18px]" />
-            {t.common.delete}
+            {confirmingDelete ? t.common.confirmDelete : t.common.delete}
           </Button>
         </div>
       )}

@@ -45,9 +45,16 @@ async function Dashboard({ searchParams }: { searchParams: PageProps<"/[lang]">[
   const isCurrent = month === current;
   const monthQuery = isCurrent ? "" : `m=${month}`;
 
+  // This month so far is compared with last month up to the same day, not with all of it.
+  const prevRange = monthRange(shiftMonth(month, -1));
+  if (isCurrent) {
+    const sameDay = `${shiftMonth(month, -1)}-${ctx.today.slice(8, 10)}`;
+    if (sameDay < prevRange.end) prevRange.end = sameDay;
+  }
+
   const [txs, prevTxs, categories, budgets, cash] = await Promise.all([
     getTransactions(monthRange(month)),
-    getTransactions(monthRange(shiftMonth(month, -1))),
+    getTransactions(prevRange),
     getCategories(),
     getBudgets(),
     getCashBalance(),
@@ -88,47 +95,53 @@ async function Dashboard({ searchParams }: { searchParams: PageProps<"/[lang]">[
       </header>
 
       {/* Balance */}
-      <section className="mt-4 overflow-hidden rounded-[28px] bg-pine p-6 text-cream shadow-lg shadow-pine/15">
-        <p className="text-sm text-cream/75">{isCurrent ? t.dashboard.leftThisMonth : t.dashboard.balance}</p>
+      <section className="mt-4 overflow-hidden rounded-[28px] bg-pine p-6 text-on-pine shadow-lg shadow-pine/15">
+        <p className="text-sm text-on-pine/75">{isCurrent ? t.dashboard.leftThisMonth : t.dashboard.balance}</p>
         <p className="mt-1 font-serif text-[44px] font-medium leading-none tracking-tight tabular-nums">
           {money(balance)}
         </p>
-        <div className="mt-6 grid grid-cols-2 divide-x divide-cream/15 rounded-[16px] bg-cream/10">
+        <div className="mt-6 grid grid-cols-2 divide-x divide-on-pine/15 rounded-[16px] bg-on-pine/10">
           <Link
             href={`/history?type=income${monthQuery ? `&${monthQuery}` : ""}`}
-            className="flex items-center gap-2.5 rounded-l-[16px] p-3.5 transition hover:bg-cream/10"
+            className="flex items-center gap-2.5 rounded-l-[16px] p-3.5 transition hover:bg-on-pine/10"
           >
-            <span className="flex h-8 w-8 items-center justify-center rounded-full bg-cream/15">
+            <span className="flex h-8 w-8 items-center justify-center rounded-full bg-on-pine/15">
               <ArrowDownLeft className="h-4 w-4" />
             </span>
             <span className="min-w-0">
-              <span className="block text-xs text-cream/70">{t.dashboard.income}</span>
+              <span className="block text-xs text-on-pine/70">{t.dashboard.income}</span>
               <span className="block truncate font-semibold tabular-nums">+{money(income)}</span>
             </span>
-            <ChevronRight className="ml-auto h-4 w-4 shrink-0 text-cream/50" />
+            <ChevronRight className="ml-auto h-4 w-4 shrink-0 text-on-pine/50" />
           </Link>
           <Link
             href={`/history?type=expense${monthQuery ? `&${monthQuery}` : ""}`}
-            className="flex items-center gap-2.5 rounded-r-[16px] p-3.5 transition hover:bg-cream/10"
+            className="flex items-center gap-2.5 rounded-r-[16px] p-3.5 transition hover:bg-on-pine/10"
           >
-            <span className="flex h-8 w-8 items-center justify-center rounded-full bg-cream/15">
+            <span className="flex h-8 w-8 items-center justify-center rounded-full bg-on-pine/15">
               <ArrowUpRight className="h-4 w-4" />
             </span>
             <span className="min-w-0">
-              <span className="block text-xs text-cream/70">{t.dashboard.expenses}</span>
+              <span className="block text-xs text-on-pine/70">{t.dashboard.expenses}</span>
               <span className="block truncate font-semibold tabular-nums">−{money(expenses)}</span>
             </span>
-            <ChevronRight className="ml-auto h-4 w-4 shrink-0 text-cream/50" />
+            <ChevronRight className="ml-auto h-4 w-4 shrink-0 text-on-pine/50" />
           </Link>
         </div>
-        {prevExpenses > 0 && (
-          <p className="mt-4 flex items-center gap-2 text-[13px] text-cream/80">
+        {prevExpenses > 0 && expenseDiff !== 0 && (
+          <p className="mt-4 flex items-center gap-2 text-[13px] text-on-pine/80">
             {expenseDiff > 0 ? <TrendingUp className="h-4 w-4" /> : <TrendingDown className="h-4 w-4" />}
             <span>
-              {f(expenseDiff > 0 ? t.dashboard.moreSpent : t.dashboard.lessSpent, {
-                amount: money(Math.abs(expenseDiff)),
-              })}
-              {isCurrent ? t.dashboard.wholeMonth : ""}
+              {f(
+                isCurrent
+                  ? expenseDiff > 0
+                    ? t.dashboard.moreSoFar
+                    : t.dashboard.lessSoFar
+                  : expenseDiff > 0
+                    ? t.dashboard.moreSpent
+                    : t.dashboard.lessSpent,
+                { amount: money(Math.abs(expenseDiff)) },
+              )}
             </span>
           </p>
         )}

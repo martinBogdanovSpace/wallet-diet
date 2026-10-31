@@ -144,7 +144,7 @@ function CategoryRow({ category, kind }: { category?: Category; kind?: CategoryK
         </div>
         <label className="block min-w-0 flex-1">
           <Label>{t.categories.name}</Label>
-          <Input value={name} onChange={(e) => setName(e.target.value)} autoFocus />
+          <Input value={name} maxLength={40} onChange={(e) => setName(e.target.value)} autoFocus />
         </label>
       </div>
 

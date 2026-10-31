@@ -32,7 +32,7 @@ export function LoginForm() {
         {mode === "signup" && (
           <label className="block">
             <Label>{t.login.yourName}</Label>
-            <Input name="name" autoComplete="given-name" required />
+            <Input name="name" autoComplete="given-name" maxLength={40} required />
           </label>
         )}
         <label className="block">

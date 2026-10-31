@@ -31,7 +31,7 @@ export function EditableName({
     >
       <Label>{label}</Label>
       <div className="flex gap-2">
-        <Input value={draft} onChange={(e) => setDraft(e.target.value)} />
+        <Input value={draft} maxLength={40} onChange={(e) => setDraft(e.target.value)} />
         {dirty && <Button disabled={pending}>{t.common.save}</Button>}
       </div>
       {error && (

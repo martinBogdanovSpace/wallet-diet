@@ -7,9 +7,11 @@ export function Card({ className = "", ...props }: ComponentProps<"div">) {
 }
 
 const BUTTON_VARIANTS = {
-  primary: "bg-pine text-cream shadow-sm hover:bg-pine-dark",
+  primary: "bg-pine text-on-pine shadow-sm hover:bg-pine-dark",
   secondary: "border border-line-strong bg-surface text-ink hover:bg-cream-200",
   danger: "border border-expense/25 bg-surface text-danger hover:bg-expense-50",
+  /** The second tap of a two-tap delete. */
+  confirm: "bg-danger text-white hover:bg-danger/90",
   ghost: "text-ink-soft hover:bg-cream-200",
 };
 
@@ -170,7 +172,7 @@ export function Avatar({ name, className = "" }: { name: string; className?: str
   );
 }
 
-const STACK_COLORS = ["bg-pine text-cream", "bg-[#c9a77c] text-ink", "bg-sage text-ink"];
+const STACK_COLORS = ["bg-pine text-on-pine", "bg-[#c9a77c] text-[#231d17]", "bg-sage text-[#231d17]"];
 
 /** Overlapping initials of the household members. */
 export function AvatarStack({ names }: { names: string[] }) {

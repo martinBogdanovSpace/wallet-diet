@@ -11,7 +11,10 @@
   --color-foreground: var(--foreground);
   --font-sans: var(--font-onest);
   --font-serif: var(--font-literata);
+}
 
+/* Not inline, so the utilities read these variables and dark mode can swap them. */
+@theme {
   /* Materials shared with da chef: cream paper, oatmeal tiles, taupe lines. */
   --color-cream: #f8f3ea; /* page */
   --color-cream-200: #efe7d9; /* oatmeal: tiles, quiet surfaces */
@@ -31,6 +34,8 @@
   --color-pine-50: #e3ece5;
   --color-pine-100: #cfdfd3;
   --color-sage: #8fa58f;
+  /* Text and icons on a pine background. */
+  --color-on-pine: #fffdf8;
   /* Second brand colour from the logo. Accents only: 3.6:1 on cream is too low for small text. */
   --color-terracotta: #c0663f;
   --color-terracotta-50: #f6e6dc;
@@ -52,6 +57,52 @@
   --color-chart-5: #8a5a6e;
   --color-chart-6: #5b7a8c;
   --color-chart-7: #c9bba8;
+}
+
+/* Dark: warm charcoal paper; pine turns light so it still reads as text and as a button. */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background: #171411;
+    --foreground: #f1eadf;
+    color-scheme: dark;
+
+    --color-cream: #171411;
+    --color-cream-200: #25201b;
+    --color-cream-300: #302a23;
+    --color-surface: #1f1b17;
+    --color-ink: #f1eadf;
+    --color-ink-soft: #ddd3c5;
+    --color-muted: #c6baab;
+    --color-subtle: #b2a596;
+    --color-faint: #877b6e;
+    --color-line: #302a23;
+    --color-line-strong: #42392f;
+
+    --color-pine: #8cc2a4;
+    --color-pine-dark: #a5d3ba;
+    --color-pine-50: #1f2f27;
+    --color-pine-100: #294236;
+    --color-sage: #6f8a72;
+    --color-on-pine: #102019;
+    --color-terracotta: #dc8862;
+    --color-terracotta-50: #3a251b;
+
+    --color-income: #93c793;
+    --color-income-50: #1f2e1f;
+    --color-expense: #ee9478;
+    --color-expense-50: #3a231b;
+    --color-warn: #e2b55e;
+    --color-warn-50: #352a14;
+    --color-danger: #d4473a;
+
+    --color-chart-1: #5f9c80;
+    --color-chart-2: #d07a52;
+    --color-chart-3: #d4a24c;
+    --color-chart-4: #93a56f;
+    --color-chart-5: #a87590;
+    --color-chart-6: #7397ab;
+    --color-chart-7: #5a5045;
+  }
 }
 
 html {
@@ -101,6 +152,17 @@ textarea {
 @keyframes sheet-fade {
   from {
     opacity: 0;
+  }
+}
+
+/* Toast: rises a little and fades in. */
+.toast {
+  animation: toast-in 0.24s ease-out;
+}
+@keyframes toast-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
   }
 }
 

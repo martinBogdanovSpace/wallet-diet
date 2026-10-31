@@ -37,18 +37,28 @@ async function History({ searchParams }: { searchParams: PageProps<"/[lang]/hist
     who: str(sp.who),
     method: str(sp.method),
     cat: str(sp.cat),
+    q: str(sp.q),
   };
 
   const [all, categories] = await Promise.all([getTransactions(monthRange(month)), getCategories()]);
   const catById = new Map(categories.map((c) => [c.id, c]));
   const memberById = new Map(ctx.members.map((p) => [p.id, p]));
 
+  // Search looks at the note and the category name, ignoring case.
+  const needle = filters.q?.toLocaleLowerCase(locale);
+  const matches = (tx: Transaction) => {
+    if (!needle) return true;
+    const category = tx.category_id ? catById.get(tx.category_id)?.name : undefined;
+    return [tx.note, category].some((text) => text?.toLocaleLowerCase(locale).includes(needle));
+  };
+
   const txs = all.filter(
     (tx) =>
       (!filters.type || tx.type === filters.type) &&
       (!filters.who || tx.user_id === filters.who) &&
       (!filters.method || tx.method === filters.method) &&
-      (!filters.cat || tx.category_id === filters.cat),
+      (!filters.cat || tx.category_id === filters.cat) &&
+      matches(tx),
   );
 
   const days = new Map<string, Transaction[]>();
@@ -72,6 +82,7 @@ async function History({ searchParams }: { searchParams: PageProps<"/[lang]/hist
         members={ctx.members}
         categories={categories.filter((c) => !c.archived || c.id === filters.cat)}
         values={filters}
+        count={txs.length}
       />
 
       <div className={`mt-5 grid gap-2 ${showIncome && showExpense ? "grid-cols-2" : "grid-cols-1"}`}>

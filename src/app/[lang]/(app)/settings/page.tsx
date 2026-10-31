@@ -1,6 +1,6 @@
 import { Suspense } from "react";
 import Link from "next/link";
-import { ChevronRight, LogOut, Repeat, Shapes, Wallet, type LucideIcon } from "lucide-react";
+import { ChevronRight, Download, LogOut, Repeat, Shapes, Wallet, type LucideIcon } from "lucide-react";
 import { getContext } from "@/lib/data";
 import { getI18n } from "@/i18n/server";
 import { LanguageSwitcher } from "@/components/language-switcher";
@@ -43,6 +43,16 @@ async function Settings() {
         <NavRow href="/recurring" Icon={Repeat} label={t.settings.recurringLink} />
         <NavRow href="/settings/categories" Icon={Shapes} label={t.settings.categoriesLink} />
         <NavRow href="/cash" Icon={Wallet} label={t.settings.cashLink} />
+        {/* A plain link: the browser downloads the file instead of navigating. */}
+        <a href="/export" download className="flex items-center gap-3.5 px-4 py-3.5 transition hover:bg-cream/60">
+          <span className="flex h-9 w-9 items-center justify-center rounded-[11px] bg-pine-50 text-pine">
+            <Download className="h-[18px] w-[18px]" strokeWidth={1.75} />
+          </span>
+          <span className="flex-1">
+            <span className="block text-[15px] font-medium">{t.settings.export}</span>
+            <span className="block text-[13px] text-subtle">{t.settings.exportHint}</span>
+          </span>
+        </a>
       </div>
 
       <InviteCard code={ctx.household.invite_code} />

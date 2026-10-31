@@ -62,7 +62,7 @@ export function Sheet({
       }}
       // A click that lands on the dialog itself (not its content) is a click on the backdrop.
       onClick={(e) => e.target === e.currentTarget && onClose()}
-      className="sheet fixed inset-x-0 bottom-0 top-auto m-0 mx-auto max-h-[94dvh] w-full max-w-lg overflow-hidden rounded-t-[30px] bg-cream p-0 text-ink outline-none shadow-[0_-12px_40px_rgba(35,29,23,0.18)] backdrop:bg-ink/40 md:bottom-6 md:rounded-[30px]"
+      className="sheet fixed inset-x-0 bottom-0 top-auto m-0 mx-auto max-h-[94dvh] w-full max-w-lg overflow-hidden rounded-t-[30px] bg-cream p-0 text-ink outline-none shadow-[0_-12px_40px_rgba(35,29,23,0.18)] backdrop:bg-black/45 md:bottom-6 md:rounded-[30px]"
       style={offset ? { transform: `translateY(${offset}px)`, transition: "none" } : undefined}
     >
       <div className="pb-safe flex max-h-[94dvh] flex-col">

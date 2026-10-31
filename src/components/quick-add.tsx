@@ -1,41 +1,66 @@
 "use client";
 
 import { useEffect, useRef, useState, useTransition } from "react";
-import { CalendarDays, Delete, LoaderCircle, PenLine } from "lucide-react";
-import { saveTransaction, type TxInput } from "@/app/actions/transactions";
+import { useRouter } from "next/navigation";
+import { CalendarDays, Delete, LoaderCircle, PenLine, Trash2 } from "lucide-react";
+import { deleteTransaction, saveTransaction, type TxInput } from "@/app/actions/transactions";
 import { parseAmountToCents } from "@/lib/money";
 import { formatDay } from "@/lib/dates";
+import { centsToKeypad, press, separatorFor } from "@/lib/keypad";
+import { MAX_NOTE } from "@/lib/limits";
+import { enqueue, isNetworkError, newId } from "@/lib/offline-queue";
 import { useI18n } from "@/i18n/client";
-import type { Category, Method } from "@/lib/types";
+import type { Category, Method, Profile, Transaction } from "@/lib/types";
 import { MethodIcon } from "@/components/method-icon";
-import { ErrorText, Segmented } from "@/components/ui";
+import { Avatar, ErrorText, Segmented } from "@/components/ui";
 import { Sheet } from "@/components/sheet";
+import { toast } from "@/components/toast";
 
 type FormType = TxInput["type"];
+type OpenDetail = { type: FormType } | { tx: Transaction };
 
 const OPEN_EVENT = "quick-add:open";
+// Set once the drawer is on the page; until then the buttons fall back to the add page.
+let listening = false;
 
-/** Opens the add drawer from anywhere in the app. */
+function open(detail: OpenDetail) {
+  if (!listening) return false;
+  window.dispatchEvent(new CustomEvent<OpenDetail>(OPEN_EVENT, { detail }));
+  return true;
+}
+
+/** Opens the add drawer from anywhere in the app. False when it isn't ready yet. */
 export function openQuickAdd(type: FormType = "expense") {
-  window.dispatchEvent(new CustomEvent<FormType>(OPEN_EVENT, { detail: type }));
+  return open({ type });
 }
 
-const KEYS = ["1", "2", "3", "4", "5", "6", "7", "8", "9", ",", "0", "del"] as const;
-
-/** Typing on the keypad: one decimal comma, two decimals, up to 999 999. */
-function press(amount: string, key: string) {
-  if (key === "del") return amount.slice(0, -1);
-  if (key === ",") return amount.includes(",") ? amount : (amount || "0") + ",";
-  const [whole, decimals] = amount.split(",");
-  if (decimals !== undefined ? decimals.length >= 2 : whole.length >= 6) return amount;
-  return amount === "0" ? key : amount + key;
+/** Opens the drawer to edit an entry. False when it isn't ready yet. */
+export function openEditor(tx: Transaction) {
+  return open({ tx });
 }
 
-export function QuickAdd({ categories, today }: { categories: Category[]; today: string }) {
+/** The add page, for when the drawer can't open. */
+export function addPageHref(type: FormType = "expense") {
+  return type === "expense" ? "/add" : `/add?type=${type}`;
+}
+
+const KEYS = ["1", "2", "3", "4", "5", "6", "7", "8", "9", "sep", "0", "del"] as const;
+
+export function QuickAdd({
+  categories,
+  members,
+  today,
+}: {
+  categories: Category[];
+  members: Profile[];
+  today: string;
+}) {
   const { t, locale } = useI18n();
-  const [open, setOpen] = useState(false);
+  const sep = separatorFor(locale);
+  const [isOpen, setOpen] = useState(false);
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string>();
+  const [editing, setEditing] = useState<Transaction | null>(null);
   const [type, setType] = useState<FormType>("expense");
   const [amount, setAmount] = useState("");
   const [categoryId, setCategoryId] = useState<string | null>(null);
@@ -43,9 +68,12 @@ export function QuickAdd({ categories, today }: { categories: Category[]; today:
   const [date, setDate] = useState(today);
   const [note, setNote] = useState("");
   const [writingNote, setWritingNote] = useState(false);
+  const [confirmingDelete, setConfirmingDelete] = useState(false);
+  const clientId = useRef("");
   const dateInput = useRef<HTMLInputElement>(null);
 
-  const visible = categories.filter((c) => c.kind === type && !c.archived);
+  const visible = categories.filter((c) => c.kind === type && (!c.archived || c.id === categoryId));
+  const author = editing && members.length > 1 ? members.find((m) => m.id === editing.user_id) : undefined;
 
   function changeType(next: FormType) {
     if (next !== type) setCategoryId(null);
@@ -56,63 +84,129 @@ export function QuickAdd({ categories, today }: { categories: Category[]; today:
 
   useEffect(() => {
     function onOpen(e: Event) {
-      const next = (e as CustomEvent<FormType>).detail;
-      setAmount("");
-      setCategoryId(null);
-      setDate(today);
-      setNote("");
+      const detail = (e as CustomEvent<OpenDetail>).detail;
+      const tx = "tx" in detail ? detail.tx : null;
+      const nextType = tx ? (tx.type as FormType) : (detail as { type: FormType }).type;
+      setEditing(tx);
+      setType(nextType);
+      setAmount(tx ? centsToKeypad(tx.amount_cents, sep) : "");
+      setCategoryId(tx?.category_id ?? null);
+      setMethod(tx?.method ?? (nextType === "income" ? "transfer" : "card"));
+      setDate(tx?.occurred_on ?? today);
+      setNote(tx?.note ?? "");
       setError(undefined);
-      setType(next);
-      setMethod(next === "income" ? "transfer" : "card");
+      setConfirmingDelete(false);
+      clientId.current = newId();
       setOpen(true);
     }
+    listening = true;
     window.addEventListener(OPEN_EVENT, onOpen);
-    return () => window.removeEventListener(OPEN_EVENT, onOpen);
-  }, [today]);
+    return () => {
+      listening = false;
+      window.removeEventListener(OPEN_EVENT, onOpen);
+    };
+  }, [today, sep]);
+
+  // The delete button asks for a second tap, but only for a few seconds.
+  useEffect(() => {
+    if (!confirmingDelete) return;
+    const timer = setTimeout(() => setConfirmingDelete(false), 3000);
+    return () => clearTimeout(timer);
+  }, [confirmingDelete]);
+
+  function close(message?: string) {
+    setOpen(false);
+    if (message) toast(message);
+  }
 
   function submit() {
     const cents = parseAmountToCents(amount);
     if (!cents || cents <= 0) return setError(t.errors.enterAmount);
     if (type !== "withdrawal" && !categoryId) return setError(t.errors.pickCategory);
+    const input: TxInput = {
+      id: editing?.id,
+      client_id: editing ? undefined : clientId.current,
+      type,
+      amount_cents: cents,
+      category_id: categoryId,
+      method,
+      occurred_on: date,
+      note,
+    };
+    // No connection: keep a new entry on the phone and send it later.
+    if (!editing && !navigator.onLine) {
+      enqueue(input);
+      return close(t.offline.queued);
+    }
     startTransition(async () => {
-      const result = await saveTransaction({
-        type,
-        amount_cents: cents,
-        category_id: categoryId,
-        method,
-        occurred_on: date,
-        note,
-      });
-      if (result.error) return setError(result.error);
-      setOpen(false);
+      try {
+        const result = await saveTransaction(input);
+        if (result.error) return setError(result.error);
+        close(t.common.saved);
+      } catch (err) {
+        if (!isNetworkError(err)) return setError(t.errors.generic);
+        if (editing) return setError(t.errors.offline);
+        enqueue(input);
+        close(t.offline.queued);
+      }
     });
+  }
+
+  function remove() {
+    if (!editing) return;
+    if (!confirmingDelete) return setConfirmingDelete(true);
+    startTransition(async () => {
+      try {
+        const result = await deleteTransaction(editing.id);
+        if (result.error) return setError(result.error);
+        close(t.common.deleted);
+      } catch (err) {
+        setError(isNetworkError(err) ? t.errors.offline : t.errors.generic);
+      }
+    });
+  }
+
+  function tapKey(key: string) {
+    setAmount((a) => press(a, key === "sep" ? sep : key, sep));
+    setError(undefined);
   }
 
   // A hardware keyboard drives the keypad too, except while typing the note.
   useEffect(() => {
-    if (!open) return;
+    if (!isOpen) return;
     function onKey(e: KeyboardEvent) {
       if (e.target instanceof HTMLInputElement || e.metaKey || e.ctrlKey || e.altKey) return;
-      const key = e.key === "." ? "," : e.key === "Backspace" ? "del" : e.key;
+      const key = e.key === "Backspace" ? "del" : e.key === "," || e.key === "." ? "sep" : e.key;
       if ((KEYS as readonly string[]).includes(key)) {
         e.preventDefault();
-        setAmount((a) => press(a, key));
+        setAmount((a) => press(a, key === "sep" ? sep : key, sep));
         setError(undefined);
       }
     }
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [open]);
+  }, [isOpen, sep]);
 
   const chip = (selected: boolean) =>
     `flex shrink-0 items-center gap-1.5 rounded-full border text-sm transition ${
       selected
-        ? "border-pine bg-pine font-semibold text-cream"
+        ? "border-pine bg-pine font-semibold text-on-pine"
         : "border-line bg-surface font-medium text-ink-soft hover:border-line-strong"
     }`;
 
   return (
-    <Sheet open={open} onClose={() => setOpen(false)} label={t.nav.add}>
+    <Sheet open={isOpen} onClose={() => setOpen(false)} label={editing ? t.tx.editTitle : t.nav.add}>
+      {editing && (
+        <div className="mb-3 flex items-center justify-between gap-3">
+          <h2 className="font-serif text-[22px] font-medium">{t.tx.editTitle}</h2>
+          {author && (
+            <p className="flex items-center gap-2 text-[13px] text-subtle">
+              <Avatar name={author.name} className="h-6 w-6 text-xs" />
+              {author.name}
+            </p>
+          )}
+        </div>
+      )}
       <Segmented
         value={type}
         onChange={changeType}
@@ -157,7 +251,11 @@ export function QuickAdd({ categories, today }: { categories: Category[]; today:
               </button>
             ))}
           </div>
-          <div className="mt-2.5 grid grid-cols-3 gap-2" role="group" aria-label={type === "income" ? t.tx.receivedWith : t.tx.paidWith}>
+          <div
+            className="mt-2.5 grid grid-cols-3 gap-2"
+            role="group"
+            aria-label={type === "income" ? t.tx.receivedWith : t.tx.paidWith}
+          >
             {(["cash", "card", "transfer"] as const).map((m) => (
               <button
                 key={m}
@@ -193,6 +291,7 @@ export function QuickAdd({ categories, today }: { categories: Category[]; today:
           <PenLine className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-faint" />
           <input
             value={note}
+            maxLength={MAX_NOTE}
             onChange={(e) => setNote(e.target.value)}
             onFocus={() => setWritingNote(true)}
             onBlur={() => setWritingNote(false)}
@@ -212,14 +311,11 @@ export function QuickAdd({ categories, today }: { categories: Category[]; today:
             <button
               key={k}
               type="button"
-              aria-label={k === "del" ? t.tx.deleteDigit : k}
-              onClick={() => {
-                setAmount((a) => press(a, k));
-                setError(undefined);
-              }}
+              aria-label={k === "del" ? t.tx.deleteDigit : k === "sep" ? sep : k}
+              onClick={() => tapKey(k)}
               className="flex h-[52px] items-center justify-center rounded-[14px] bg-surface text-[22px] font-medium text-ink transition active:scale-[0.97] active:bg-cream-300"
             >
-              {k === "del" ? <Delete className="h-6 w-6" strokeWidth={1.75} /> : k}
+              {k === "del" ? <Delete className="h-6 w-6" strokeWidth={1.75} /> : k === "sep" ? sep : k}
             </button>
           ))}
         </div>
@@ -230,15 +326,33 @@ export function QuickAdd({ categories, today }: { categories: Category[]; today:
           <ErrorText>{error}</ErrorText>
         </div>
       )}
-      <button
-        type="button"
-        onClick={submit}
-        disabled={pending}
-        className="mt-3 flex h-[54px] w-full items-center justify-center gap-2 rounded-[16px] bg-pine text-base font-semibold text-cream shadow-sm transition hover:bg-pine-dark active:scale-[0.98] disabled:opacity-60"
-      >
-        {pending && <LoaderCircle className="h-5 w-5 animate-spin" />}
-        {pending ? t.common.saving : t.common.save}
-      </button>
+      <div className="mt-3 flex gap-2">
+        {editing && (
+          <button
+            type="button"
+            onClick={remove}
+            disabled={pending}
+            aria-label={confirmingDelete ? t.common.confirmDelete : t.common.delete}
+            className={`flex h-[54px] shrink-0 items-center justify-center gap-2 rounded-[16px] border text-sm font-semibold transition active:scale-[0.98] disabled:opacity-60 ${
+              confirmingDelete
+                ? "border-danger bg-danger px-4 text-white"
+                : "w-[54px] border-expense/25 bg-surface text-danger"
+            }`}
+          >
+            <Trash2 className="h-5 w-5" />
+            {confirmingDelete && t.common.confirmDelete}
+          </button>
+        )}
+        <button
+          type="button"
+          onClick={submit}
+          disabled={pending}
+          className="flex h-[54px] flex-1 items-center justify-center gap-2 rounded-[16px] bg-pine text-base font-semibold text-on-pine shadow-sm transition hover:bg-pine-dark active:scale-[0.98] disabled:opacity-60"
+        >
+          {pending && <LoaderCircle className="h-5 w-5 animate-spin" />}
+          {pending ? t.common.saving : editing ? t.common.saveChanges : t.common.save}
+        </button>
+      </div>
     </Sheet>
   );
 }
@@ -253,8 +367,13 @@ export function QuickAddButton({
   className?: string;
   children: React.ReactNode;
 }) {
+  const router = useRouter();
   return (
-    <button type="button" onClick={() => openQuickAdd(type)} className={className}>
+    <button
+      type="button"
+      onClick={() => openQuickAdd(type) || router.push(addPageHref(type))}
+      className={className}
+    >
       {children}
     </button>
   );

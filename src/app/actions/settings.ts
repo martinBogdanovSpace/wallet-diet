@@ -4,6 +4,8 @@ import { refresh } from "next/cache";
 import { getContext } from "@/lib/data";
 import { getActionI18n } from "@/i18n/server";
 import { firstEmoji } from "@/lib/emoji";
+import { addDays, isValidDate } from "@/lib/dates";
+import { MAX_NAME, MAX_NOTE } from "@/lib/limits";
 import type { CategoryKind, Frequency, Method } from "@/lib/types";
 
 type Result = { error?: string };
@@ -19,6 +21,7 @@ export async function saveCategory(input: {
   const { t } = await getActionI18n();
   const name = input.name.trim();
   if (!name) return { error: t.errors.nameEmpty };
+  if (name.length > MAX_NAME) return { error: t.errors.nameTooLong };
   if (!["income", "expense"].includes(input.kind)) return { error: t.errors.invalidInput };
 
   const { supabase, household } = await getContext();
@@ -67,6 +70,12 @@ export async function saveBudget(categoryId: string, limitCents: number | null):
 
 // --- Recurring --------------------------------------------------------------
 
+/** Pages only post due entries once a day, so post a rule with a past date straight away. */
+async function postDueRecurring() {
+  const { supabase, today } = await getContext();
+  await supabase.rpc("process_recurring", { p_today: today });
+}
+
 export type RecurringInput = {
   id?: string;
   type: "income" | "expense";
@@ -89,9 +98,20 @@ export async function saveRecurring(input: RecurringInput): Promise<Result> {
   if (!Number.isInteger(input.amount_cents) || input.amount_cents <= 0)
     return { error: t.errors.amountPositive };
   if (!input.category_id) return { error: t.errors.pickCategory };
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(input.next_date)) return { error: t.errors.invalidDate };
+  if (typeof input.note !== "string" || input.note.length > MAX_NOTE) return { error: t.errors.noteTooLong };
+  if (!isValidDate(input.next_date)) return { error: t.errors.invalidDate };
 
-  const { supabase, household } = await getContext();
+  const { supabase, household, today } = await getContext();
+  // Past dates are posted right away, so a typo in the year must not reach far back.
+  if (input.next_date < addDays(today, -366) || input.next_date > addDays(today, 366))
+    return { error: t.errors.dateWithinYear };
+  const { data: category } = await supabase
+    .from("categories")
+    .select("kind")
+    .eq("id", input.category_id)
+    .eq("household_id", household.id)
+    .maybeSingle();
+  if (!category || category.kind !== input.type) return { error: t.errors.pickCategory };
   const row = {
     type: input.type,
     amount_cents: input.amount_cents,
@@ -106,6 +126,7 @@ export async function saveRecurring(input: RecurringInput): Promise<Result> {
     ? await supabase.from("recurring").update(row).eq("id", input.id)
     : await supabase.from("recurring").insert({ ...row, household_id: household.id });
   if (result.error) return { error: result.error.message };
+  await postDueRecurring();
   refresh();
   return {};
 }
@@ -114,6 +135,7 @@ export async function setRecurringActive(id: string, active: boolean): Promise<R
   const { supabase } = await getContext();
   const { error } = await supabase.from("recurring").update({ active }).eq("id", id);
   if (error) return { error: error.message };
+  if (active) await postDueRecurring();
   refresh();
   return {};
 }

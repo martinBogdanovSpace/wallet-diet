@@ -1,26 +1,29 @@
 import { Suspense } from "react";
 import { getBudgets, getCategories, getContext, getTransactions } from "@/lib/data";
-import { formatMonth, monthOf, monthRange } from "@/lib/dates";
+import { formatMonth, isValidMonth, monthOf, monthRange } from "@/lib/dates";
 import { getI18n } from "@/i18n/server";
 import { PageHeader, Skeleton } from "@/components/ui";
 import { budgetTone } from "@/components/budget-bar";
+import { MonthSwitcher } from "@/components/month-switcher";
 import { BudgetEditor } from "./budget-editor";
 
-export default async function BudgetsPage() {
+export default async function BudgetsPage({ searchParams }: PageProps<"/[lang]/budgets">) {
   const { t } = await getI18n();
   return (
     <>
       <PageHeader title={t.budgets.title} />
       <Suspense fallback={<Skeleton className="h-96" />}>
-        <Budgets />
+        <Budgets searchParams={searchParams} />
       </Suspense>
     </>
   );
 }
 
-async function Budgets() {
+async function Budgets({ searchParams }: { searchParams: PageProps<"/[lang]/budgets">["searchParams"] }) {
+  const { m } = await searchParams;
   const [ctx, { t, f, money, locale }] = await Promise.all([getContext(), getI18n()]);
-  const month = monthOf(ctx.today);
+  const current = monthOf(ctx.today);
+  const month = typeof m === "string" && isValidMonth(m) && m <= current ? m : current;
   const [categories, budgets, txs] = await Promise.all([
     getCategories(),
     getBudgets(),
@@ -44,7 +47,8 @@ async function Budgets() {
 
   return (
     <div className="pb-4">
-      <section className="rounded-[24px] border border-line bg-surface p-6">
+      <MonthSwitcher month={month} current={current} basePath="/budgets" />
+      <section className="mt-3 rounded-[24px] border border-line bg-surface p-6">
         <p className="text-sm text-subtle">{f(t.budgets.summary, { month: formatMonth(month, locale) })}</p>
         <p className="mt-2 font-serif text-[40px] font-medium leading-none tracking-tight tabular-nums">
           {money(totalSpent)}

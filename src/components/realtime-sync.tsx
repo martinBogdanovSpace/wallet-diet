@@ -4,9 +4,11 @@ import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 
+const TABLES = ["transactions", "categories", "budgets", "recurring"];
+
 /**
- * Refreshes the current page when the other household member changes a
- * transaction, and when the app comes back to the foreground.
+ * Refreshes the current page when the other household member changes an
+ * entry, category, budget or recurring rule, and when the app comes back to the foreground.
  */
 export function RealtimeSync() {
   const router = useRouter();
@@ -20,10 +22,11 @@ export function RealtimeSync() {
     };
 
     // RLS limits inserts/updates to our household's rows.
-    const channel = supabase
-      .channel("transactions")
-      .on("postgres_changes", { event: "*", schema: "public", table: "transactions" }, refreshSoon)
-      .subscribe();
+    const channel = supabase.channel("household");
+    for (const table of TABLES) {
+      channel.on("postgres_changes", { event: "*", schema: "public", table }, refreshSoon);
+    }
+    channel.subscribe();
 
     const onVisible = () => {
       if (document.visibilityState === "visible") refreshSoon();

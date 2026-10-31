@@ -17,9 +17,17 @@ export async function proxy(request: NextRequest) {
 
   // Pages live under app/[lang]; rewrite so URLs stay free of a language prefix.
   const rewriteUrl = request.nextUrl.clone();
+  const locale = pickLocale(request);
   if (!pathname.startsWith("/auth/")) {
-    rewriteUrl.pathname = `/${pickLocale(request)}${pathname === "/" ? "" : pathname}`;
+    rewriteUrl.pathname = `/${locale}${pathname === "/" ? "" : pathname}`;
   }
+  // Server Actions only see the cookie, so remember the language picked from the browser too.
+  const rememberLocale = (res: NextResponse) => {
+    if (!request.cookies.has(LOCALE_COOKIE)) {
+      res.cookies.set(LOCALE_COOKIE, locale, { path: "/", maxAge: 31536000, sameSite: "lax" });
+    }
+    return res;
+  };
   const next = () => NextResponse.rewrite(rewriteUrl, { request });
 
   let response = next();
@@ -53,17 +61,17 @@ export async function proxy(request: NextRequest) {
     const url = request.nextUrl.clone();
     url.pathname = "/login";
     url.search = pathname === "/" ? "" : `?next=${encodeURIComponent(pathname + search)}`;
-    return NextResponse.redirect(url);
+    return rememberLocale(NextResponse.redirect(url));
   }
 
   if (signedIn && pathname === "/login") {
     const url = request.nextUrl.clone();
     url.pathname = "/";
     url.search = "";
-    return NextResponse.redirect(url);
+    return rememberLocale(NextResponse.redirect(url));
   }
 
-  return response;
+  return rememberLocale(response);
 }
 
 export const config = {

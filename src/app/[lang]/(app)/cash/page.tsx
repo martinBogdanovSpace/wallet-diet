@@ -61,7 +61,7 @@ async function Cash() {
             <span className="block text-[13px] text-subtle">{t.cash.atmSub}</span>
           </span>
         </QuickAddButton>
-        <CashCount balance={balance} today={ctx.today} />
+        <CashCount balance={balance} />
       </div>
 
       <Section title={t.cash.movements}>

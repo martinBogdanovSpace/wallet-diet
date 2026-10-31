@@ -7,16 +7,12 @@ import { deleteTransaction, saveTransaction, type TxInput } from "@/app/actions/
 import { centsToInput, parseAmountToCents } from "@/lib/money";
 import { useI18n } from "@/i18n/client";
 import type { Category, Method, Transaction } from "@/lib/types";
+import { MAX_NOTE } from "@/lib/limits";
+import { addDays } from "@/lib/dates";
 import { MethodIcon } from "@/components/method-icon";
 import { Button, ErrorText, Label, Segmented, fieldClass } from "@/components/ui";
 
 type FormType = TxInput["type"];
-
-function yesterdayOf(today: string) {
-  const d = new Date(`${today}T00:00:00Z`);
-  d.setUTCDate(d.getUTCDate() - 1);
-  return d.toISOString().slice(0, 10);
-}
 
 export function TransactionForm({
   categories,
@@ -33,6 +29,7 @@ export function TransactionForm({
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string>();
+  const [confirmingDelete, setConfirmingDelete] = useState(false);
 
   const [type, setType] = useState<FormType>(
     initial && initial.type !== "adjustment" ? initial.type : defaultType,
@@ -43,7 +40,7 @@ export function TransactionForm({
   const [date, setDate] = useState(initial?.occurred_on ?? today);
   const [note, setNote] = useState(initial?.note ?? "");
 
-  const yesterday = yesterdayOf(today);
+  const yesterday = addDays(today, -1);
   const visible = categories.filter((c) => c.kind === type && (!c.archived || c.id === categoryId));
 
   function reset() {
@@ -85,6 +82,7 @@ export function TransactionForm({
 
   function remove() {
     if (!initial) return;
+    if (!confirmingDelete) return setConfirmingDelete(true);
     startTransition(async () => {
       const result = await deleteTransaction(initial.id);
       if (result.error) return setError(result.error);
@@ -146,7 +144,7 @@ export function TransactionForm({
                     }`}
                   >
                     {selected && (
-                      <span className="absolute right-1.5 top-1.5 flex h-4 w-4 items-center justify-center rounded-full bg-pine text-cream">
+                      <span className="absolute right-1.5 top-1.5 flex h-4 w-4 items-center justify-center rounded-full bg-pine text-on-pine">
                         <Check className="h-3 w-3" strokeWidth={3} />
                       </span>
                     )}
@@ -217,6 +215,7 @@ export function TransactionForm({
           <PenLine className="pointer-events-none absolute left-4 top-1/2 h-[18px] w-[18px] -translate-y-1/2 text-faint" />
           <input
             value={note}
+            maxLength={MAX_NOTE}
             onChange={(e) => setNote(e.target.value)}
             placeholder={type === "income" ? t.tx.incomeNotePlaceholder : t.tx.notePlaceholder}
             className={`${fieldClass} pl-11`}
@@ -233,8 +232,15 @@ export function TransactionForm({
         )}
         <div className="flex gap-2">
           {initial && (
-            <Button type="button" variant="danger" onClick={remove} disabled={pending} aria-label={t.common.delete}>
+            <Button
+              type="button"
+              variant={confirmingDelete ? "confirm" : "danger"}
+              onClick={remove}
+              disabled={pending}
+              aria-label={confirmingDelete ? t.common.confirmDelete : t.common.delete}
+            >
               <Trash2 className="h-[18px] w-[18px]" />
+              {confirmingDelete && t.common.confirmDelete}
             </Button>
           )}
           <Button className="flex-1" disabled={pending}>
