@@ -78,6 +78,16 @@ async function Dashboard({ searchParams }: { searchParams: PageProps<"/[lang]">[
   const balance = income - expenses;
   // Money left over from earlier months is added on top, and shown as its own line.
   const showCarried = carried !== null && carried !== 0;
+  const total = showCarried ? carried + balance : balance;
+  // Below zero the label says so, and the amount is shown without a minus.
+  const short = total < 0;
+  const label = showCarried
+    ? isCurrent
+      ? short ? t.dashboard.shortBy : t.dashboard.available
+      : short ? t.dashboard.shortMonthEnd : t.dashboard.monthEnd
+    : isCurrent
+      ? short ? t.dashboard.overspentThisMonth : t.dashboard.leftThisMonth
+      : short ? t.dashboard.overspent : t.dashboard.balance;
   const signed = (cents: number) => `${cents < 0 ? "−" : "+"}${money(Math.abs(cents))}`;
   const expenseDiff = expenses - prevExpenses;
 
@@ -110,16 +120,10 @@ async function Dashboard({ searchParams }: { searchParams: PageProps<"/[lang]">[
       {/* Balance */}
       <section className="mt-4 overflow-hidden rounded-[28px] bg-pine p-5 text-on-pine sm:p-6 shadow-lg shadow-pine/15">
         <p className="text-sm text-on-pine/75">
-          {showCarried
-            ? isCurrent
-              ? t.dashboard.available
-              : t.dashboard.monthEnd
-            : isCurrent
-              ? t.dashboard.leftThisMonth
-              : t.dashboard.balance}
+          {label}
         </p>
         <p className="mt-1 font-serif text-[44px] font-medium leading-none tracking-tight tabular-nums">
-          {money(showCarried ? carried + balance : balance)}
+          {money(Math.abs(total))}
         </p>
         {showCarried && (
           <p className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-[13px] text-on-pine/80">
