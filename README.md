@@ -59,3 +59,15 @@ Set Supabase **Authentication → URL Configuration → Site URL** to the Vercel
 - "Today" / "this month" use the household's timezone (taken from the browser that created it).
 - Row-level security restricts every table to members of the household.
 - `npm test` runs the unit tests (amount parsing, keypad, dates, CSV).
+
+## End-to-end tests
+
+They run the whole app (a production build on port 3100) against a **local** Supabase in Docker,
+never against the real project.
+
+1. Start Docker Desktop, then `npm run db:start` (the first time downloads the images).
+2. `npm run test:e2e`: wipes the local database, applies every migration, seeds two users
+   sharing a household with three months of entries, and runs the tests in Chrome on a phone-sized screen.
+   `npm run test:e2e:ui` shows them running.
+3. Screenshots of every screen (Bulgarian/English, light/dark) land in `e2e-screens/`.
+4. `npm run db:stop` stops the local Supabase. Its dashboard is at <http://127.0.0.1:54323> while it runs.

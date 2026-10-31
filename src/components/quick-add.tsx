@@ -100,9 +100,12 @@ export function QuickAdd({
       setOpen(true);
     }
     listening = true;
+    // Lets tests (and anyone debugging) see that + will now open the drawer.
+    document.documentElement.dataset.quickAdd = "ready";
     window.addEventListener(OPEN_EVENT, onOpen);
     return () => {
       listening = false;
+      delete document.documentElement.dataset.quickAdd;
       window.removeEventListener(OPEN_EVENT, onOpen);
     };
   }, [today, sep]);

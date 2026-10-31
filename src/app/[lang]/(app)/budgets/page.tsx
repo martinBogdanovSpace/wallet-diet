@@ -3,7 +3,7 @@ import { getBudgets, getCategories, getContext, getTransactions } from "@/lib/da
 import { formatMonth, isValidMonth, monthOf, monthRange } from "@/lib/dates";
 import { getI18n } from "@/i18n/server";
 import { PageHeader, Skeleton } from "@/components/ui";
-import { budgetTone } from "@/components/budget-bar";
+import { budgetTone } from "@/lib/budget";
 import { MonthSwitcher } from "@/components/month-switcher";
 import { BudgetEditor } from "./budget-editor";
 
