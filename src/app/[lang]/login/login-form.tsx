@@ -15,6 +15,7 @@ export function LoginForm() {
   const [signInState, signInAction, signingIn] = useActionState<AuthState, FormData>(signIn, {});
   const [signUpState, signUpAction, signingUp] = useActionState<AuthState, FormData>(signUp, {});
   const state = mode === "signin" ? signInState : signUpState;
+  const [mismatch, setMismatch] = useState(false);
   const pending = signingIn || signingUp;
 
   return (
@@ -27,7 +28,17 @@ export function LoginForm() {
           { value: "signup", label: t.login.createAccount },
         ]}
       />
-      <form action={mode === "signin" ? signInAction : signUpAction} className="space-y-4">
+      <form
+        action={mode === "signin" ? signInAction : signUpAction}
+        // Catch a typo in the repeated password before the form is sent and cleared.
+        onSubmit={(e) => {
+          const form = e.currentTarget;
+          const differs = mode === "signup" && form.password.value !== form.confirm.value;
+          setMismatch(differs);
+          if (differs) e.preventDefault();
+        }}
+        className="space-y-4"
+      >
         <input type="hidden" name="next" value={next} />
         {mode === "signup" && (
           <label className="block">
@@ -49,8 +60,21 @@ export function LoginForm() {
             required
           />
         </label>
+        {mode === "signup" && (
+          <label className="block">
+            <Label>{t.login.confirmPassword}</Label>
+            <Input
+              name="confirm"
+              type="password"
+              autoComplete="new-password"
+              minLength={8}
+              required
+              onChange={() => setMismatch(false)}
+            />
+          </label>
+        )}
         {params.get("error") === "confirm" && <ErrorText>{t.login.confirmInvalid}</ErrorText>}
-        <ErrorText>{state.error}</ErrorText>
+        <ErrorText>{mismatch ? t.errors.passwordMismatch : state.error}</ErrorText>
         {state.message && (
           <p className="flex items-start gap-2 rounded-[14px] bg-pine-50 px-4 py-3 text-sm text-pine">
             <MailCheck className="mt-0.5 h-4 w-4 shrink-0" />

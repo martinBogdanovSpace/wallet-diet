@@ -32,6 +32,7 @@ export async function signUp(_: AuthState, formData: FormData): Promise<AuthStat
   if (!name) return { error: t.errors.enterName };
   if (name.length > MAX_NAME) return { error: t.errors.nameTooLong };
   if (password.length < 8) return { error: t.errors.passwordShort };
+  if (password !== String(formData.get("confirm") ?? "")) return { error: t.errors.passwordMismatch };
 
   const supabase = await createClient();
   // The confirmation link must point at the real site, so prefer the configured address.

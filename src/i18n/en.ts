@@ -48,6 +48,7 @@ export const en = {
     yourName: "Your name",
     email: "Email",
     password: "Password",
+    confirmPassword: "Confirm password",
     confirmInvalid: "That confirmation link is invalid or expired.",
   },
   onboarding: {
@@ -231,6 +232,7 @@ export const en = {
     nameEmpty: "Name can't be empty.",
     enterName: "Please enter your name.",
     passwordShort: "Password must be at least 8 characters.",
+    passwordMismatch: "The passwords don't match.",
     limitPositive: "Enter a limit above zero.",
     invalidCredentials: "Wrong email or password.",
     alreadyRegistered: "An account with this email already exists. Sign in instead.",

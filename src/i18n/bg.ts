@@ -50,6 +50,7 @@ export const bg: Dict = {
     yourName: "Вашето име",
     email: "Имейл",
     password: "Парола",
+    confirmPassword: "Повторете паролата",
     confirmInvalid: "Линкът за потвърждение е невалиден или е изтекъл.",
   },
   onboarding: {
@@ -233,6 +234,7 @@ export const bg: Dict = {
     nameEmpty: "Името не може да е празно.",
     enterName: "Моля, въведете името си.",
     passwordShort: "Паролата трябва да е поне 8 символа.",
+    passwordMismatch: "Паролите не съвпадат.",
     limitPositive: "Въведете лимит над нула.",
     invalidCredentials: "Грешен имейл или парола.",
     alreadyRegistered: "Вече има акаунт с този имейл. Влезте в профила си.",
