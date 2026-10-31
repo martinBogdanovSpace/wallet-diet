@@ -1,36 +1,48 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Wallet Diet
 
-## Getting Started
+Shared income & expense tracker for two people. Next.js 16 + Supabase, installable as a PWA.
 
-First, run the development server:
+## Features
+
+- Quick add: amount, category, paid with **Cash / Card / Transfer**, date, note
+- **ATM withdrawals** and a **cash wallet** (cash on hand, "count cash" correction)
+- Dashboard: month balance, income vs expenses, spending by category, who paid
+- History grouped by day, with filters (who / method / category) and month switcher
+- **Monthly budgets** per category (amber at 80%, red when over)
+- **Recurring** income & payments (salary, rent, subscriptions), posted automatically when the app is opened
+- Household invite link/code; live updates when the other person adds something
+
+## Setup
+
+### 1. Supabase
+
+1. Create a free project at <https://supabase.com>.
+2. **SQL Editor** → paste and run `supabase/migrations/20261030000000_init.sql`.
+3. **Authentication → Sign In / Providers → Email**: turn **off** "Confirm email" (simplest for two people),
+   or keep it on and add `https://<your-domain>/auth/callback` under **Authentication → URL Configuration → Redirect URLs**.
+4. **Project Settings → API Keys**: copy the project URL and the **publishable** key.
+
+### 2. Local
 
 ```bash
+cp .env.example .env.local   # fill in the two values
+npm install
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+### 3. Vercel
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+Import the repo as a new project, add the same two env vars, deploy.
+Set Supabase **Authentication → URL Configuration → Site URL** to the Vercel URL.
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+### 4. First use
 
-## Learn More
+1. Create your account → create the household.
+2. **More → Share invite link** → your partner opens it, creates an account, joins.
+3. On iPhone: open the site in Safari → Share → **Add to Home Screen**. Log in once inside the installed app.
 
-To learn more about Next.js, take a look at the following resources:
+## Notes
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- Amounts are stored as integer cents; everything is EUR.
+- "Today" / "this month" use the household's timezone (taken from the browser that created it).
+- Row-level security restricts every table to members of the household.
