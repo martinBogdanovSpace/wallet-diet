@@ -1,7 +1,7 @@
 import { getContext } from "@/lib/data";
 import { csvAmount, csvLine } from "@/lib/csv";
 import { DEFAULT_LOCALE, isLocale } from "@/i18n/config";
-import { categoryName, DICTIONARIES } from "@/i18n/dictionaries";
+import { DICTIONARIES, localizedCategoryName } from "@/i18n/dictionaries";
 import type { Transaction } from "@/lib/types";
 
 const PAGE = 1000;
@@ -15,10 +15,10 @@ export async function GET(_: Request, ctx: RouteContext<"/[lang]/export">) {
 
   const { data: categories, error: catError } = await supabase
     .from("categories")
-    .select("id, name")
+    .select("*")
     .eq("household_id", household.id);
   if (catError) return new Response(catError.message, { status: 500 });
-  const catName = new Map(categories.map((c) => [c.id as string, categoryName(c.name, locale)]));
+  const catName = new Map(categories.map((c) => [c.id as string, localizedCategoryName(c, locale)]));
   const memberName = new Map(members.map((m) => [m.id, m.name]));
 
   // The API returns at most 1000 rows per request, so read it page by page.

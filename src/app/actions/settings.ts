@@ -6,6 +6,7 @@ import { getActionI18n } from "@/i18n/server";
 import { firstEmoji } from "@/lib/emoji";
 import { addDays, isValidDate } from "@/lib/dates";
 import { MAX_NAME, MAX_NOTE } from "@/lib/limits";
+import { LOCALES, type Locale } from "@/i18n/config";
 import type { CategoryKind, Frequency, Method } from "@/lib/types";
 
 type Result = { error?: string };
@@ -14,23 +15,29 @@ type Result = { error?: string };
 
 export async function saveCategory(input: {
   id?: string;
-  name: string;
+  names: Partial<Record<Locale, string>>;
   icon: string;
   kind: CategoryKind;
 }): Promise<Result> {
   const { t } = await getActionI18n();
-  const name = input.name.trim();
+  const names: Partial<Record<Locale, string>> = {};
+  for (const locale of LOCALES) {
+    const value = String(input.names?.[locale] ?? "").trim();
+    if (value.length > MAX_NAME) return { error: t.errors.nameTooLong };
+    if (value) names[locale] = value;
+  }
+  // The plain name is the fallback for any language without its own name.
+  const name = names.en ?? names.bg;
   if (!name) return { error: t.errors.nameEmpty };
-  if (name.length > MAX_NAME) return { error: t.errors.nameTooLong };
   if (!["income", "expense"].includes(input.kind)) return { error: t.errors.invalidInput };
 
   const { supabase, household } = await getContext();
   const icon = firstEmoji(input.icon) ?? "📦";
   const result = input.id
-    ? await supabase.from("categories").update({ name, icon }).eq("id", input.id)
+    ? await supabase.from("categories").update({ name, names, icon }).eq("id", input.id)
     : await supabase
         .from("categories")
-        .insert({ household_id: household.id, name, icon, kind: input.kind, sort: 100 });
+        .insert({ household_id: household.id, name, names, icon, kind: input.kind, sort: 100 });
   if (result.error) return { error: result.error.message };
   refresh();
   return {};

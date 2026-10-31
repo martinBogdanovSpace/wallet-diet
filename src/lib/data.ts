@@ -3,7 +3,7 @@ import { cache } from "react";
 import { redirect } from "next/navigation";
 import { connection } from "next/server";
 import { createClient } from "@/lib/supabase/server";
-import { categoryName } from "@/i18n/dictionaries";
+import { categoryNames, localizedCategoryName, type CategoryNames } from "@/i18n/dictionaries";
 import { getI18n } from "@/i18n/server";
 import type { Budget, Category, Household, Profile, Recurring, Transaction } from "@/lib/types";
 
@@ -48,14 +48,25 @@ export const getCategories = cache(async () => {
   const data = must(
     await supabase
       .from("categories")
-      .select("id, name, icon, kind, sort, archived")
+      // "*" rather than a column list, so pages still load before the names column exists.
+      .select("*")
       .eq("household_id", household.id)
       .order("kind")
       .order("sort")
       .order("name"),
     "categories",
   );
-  return (data as Category[]).map((c) => ({ ...c, name: categoryName(c.name, locale) }));
+  return (data as (Omit<Category, "names"> & { names?: CategoryNames })[]).map(
+    (c): Category => ({
+      id: c.id,
+      icon: c.icon,
+      kind: c.kind,
+      sort: c.sort,
+      archived: c.archived,
+      name: localizedCategoryName(c, locale),
+      names: categoryNames(c),
+    }),
+  );
 });
 
 const TX_COLUMNS =

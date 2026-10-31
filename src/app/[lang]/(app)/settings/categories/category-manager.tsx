@@ -5,6 +5,7 @@ import { Eye, EyeOff, Pencil, Plus } from "lucide-react";
 import { saveCategory, setCategoryArchived } from "@/app/actions/settings";
 import type { Category, CategoryKind } from "@/lib/types";
 import { useI18n } from "@/i18n/client";
+import { LOCALES, type Locale } from "@/i18n/config";
 import { CATEGORY_EMOJI, firstEmoji } from "@/lib/emoji";
 import { Button, ErrorText, Input, Label, Segmented, Tile } from "@/components/ui";
 
@@ -50,11 +51,22 @@ export function CategoryManager({ categories }: { categories: Category[] }) {
   );
 }
 
+const LANGUAGE_NAMES: Record<Locale, string> = { bg: "Български", en: "English" };
+
+/** What the name fields start with; an older category without names shows its name in the page language. */
+function initialNames(category: Category | undefined, locale: Locale): Record<Locale, string> {
+  const names = { bg: "", en: "", ...category?.names };
+  if (category && !category.names.bg && !category.names.en) names[locale] = category.name;
+  return names;
+}
+
 function CategoryRow({ category, kind }: { category?: Category; kind?: CategoryKind }) {
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
   const [editing, setEditing] = useState(false);
   const [icon, setIcon] = useState(category?.icon ?? "📦");
-  const [name, setName] = useState(category?.name ?? "");
+  const [names, setNames] = useState(() => initialNames(category, locale));
+  // The page language first: that name is the one people usually type.
+  const order = [locale, ...LOCALES.filter((l) => l !== locale)];
   const [picking, setPicking] = useState(false);
   const [error, setError] = useState<string>();
   const [pending, startTransition] = useTransition();
@@ -117,10 +129,10 @@ function CategoryRow({ category, kind }: { category?: Category; kind?: CategoryK
       onSubmit={(e) => {
         e.preventDefault();
         run(
-          () => saveCategory({ id: category?.id, name, icon, kind: category?.kind ?? kind! }),
+          () => saveCategory({ id: category?.id, names, icon, kind: category?.kind ?? kind! }),
           () => {
             if (!category) {
-              setName("");
+              setNames(initialNames(undefined, locale));
               setIcon("📦");
             }
           },
@@ -143,10 +155,27 @@ function CategoryRow({ category, kind }: { category?: Category; kind?: CategoryK
           </button>
         </div>
         <label className="block min-w-0 flex-1">
-          <Label>{t.categories.name}</Label>
-          <Input value={name} maxLength={40} onChange={(e) => setName(e.target.value)} autoFocus />
+          <Label hint={LANGUAGE_NAMES[order[0]]}>{t.categories.name}</Label>
+          <Input
+            value={names[order[0]]}
+            maxLength={40}
+            onChange={(e) => setNames((n) => ({ ...n, [order[0]]: e.target.value }))}
+            autoFocus
+          />
         </label>
       </div>
+      {order.slice(1).map((l) => (
+        <label key={l} className="block">
+          <Label hint={t.categories.otherLanguageHint}>{LANGUAGE_NAMES[l]}</Label>
+          <Input
+            value={names[l]}
+            maxLength={40}
+            lang={l}
+            placeholder={names[order[0]]}
+            onChange={(e) => setNames((n) => ({ ...n, [l]: e.target.value }))}
+          />
+        </label>
+      ))}
 
       {picking && (
         <div className="rounded-[16px] border border-line bg-surface p-2">
@@ -190,7 +219,7 @@ function CategoryRow({ category, kind }: { category?: Category; kind?: CategoryK
           variant="secondary"
           onClick={() => {
             // Drop unsaved changes so reopening shows what is stored.
-            setName(category?.name ?? "");
+            setNames(initialNames(category, locale));
             setIcon(category?.icon ?? "📦");
             setPicking(false);
             setError(undefined);

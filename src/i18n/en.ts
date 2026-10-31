@@ -205,6 +205,7 @@ export const en = {
     restore: "Restore",
     emoji: "Icon",
     customEmoji: "Or type any emoji",
+    otherLanguageHint: "optional, shown in the other language",
     name: "Name",
     explain: "Hiding a category removes it from the add screen. Past entries keep it.",
   },

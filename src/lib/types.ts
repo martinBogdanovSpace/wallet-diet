@@ -14,7 +14,10 @@ export type Household = {
 
 export type Category = {
   id: string;
+  /** In the page language. */
   name: string;
+  /** Names the category has per language, for editing. */
+  names: Partial<Record<"en" | "bg", string>>;
   icon: string;
   kind: CategoryKind;
   sort: number;
