@@ -16,7 +16,7 @@ const TABS = [
 
 function isActive(href: string, pathname: string | null) {
   if (!pathname) return false;
-  if (href === "/") return pathname === "/" || pathname === "/cash";
+  if (href === "/") return ["/", "/cash", "/year", "/goals"].includes(pathname);
   if (href === "/settings") return ["/settings", "/recurring"].some((p) => pathname.startsWith(p));
   return pathname.startsWith(href);
 }

@@ -51,3 +51,16 @@ export type Recurring = {
 };
 
 export type Budget = { category_id: string; monthly_limit_cents: number };
+
+export type Goal = {
+  id: string;
+  name: string;
+  icon: string;
+  target_cents: number;
+  saved_cents: number;
+};
+
+export type YearSummary = {
+  months: { month: string; income: number; expenses: number }[];
+  categories: { category_id: string | null; expenses: number }[];
+};

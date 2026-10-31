@@ -32,5 +32,6 @@ describe("dates", () => {
     expect(formatDay("2026-10-31", "2026-10-31", "en", labels)).toBe("Today");
     expect(formatDay("2026-10-30", "2026-10-31", "en", labels)).toBe("Yesterday");
     expect(formatDay("2026-10-27", "2026-10-31", "en", labels)).toBe("Tue 27 Oct");
+    expect(formatDay("2025-10-27", "2026-10-31", "en", labels)).toBe("Mon, 27 Oct 2025");
   });
 });

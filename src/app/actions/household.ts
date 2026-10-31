@@ -57,3 +57,16 @@ export async function regenerateInvite() {
   refresh();
   return {};
 }
+
+/** Money the household had before its first entry; can be negative (a debt). */
+export async function saveStartingBalance(cents: number) {
+  const [{ supabase, household }, { t }] = await Promise.all([getContext(), getActionI18n()]);
+  if (!Number.isInteger(cents) || Math.abs(cents) > 100_000_000_00) return { error: t.errors.invalidAmount };
+  const { error } = await supabase
+    .from("households")
+    .update({ starting_balance_cents: cents })
+    .eq("id", household.id);
+  if (error) return { error: error.message };
+  refresh();
+  return {};
+}

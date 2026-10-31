@@ -16,6 +16,9 @@ Shared income & expense tracker for two people. Next.js 16 + Supabase, installab
 - Works on a bad connection: new entries are kept on the phone and sent when it's back online
 - Export every entry to CSV (More → Export), readable by Excel in either language
 - Follows the phone's light or dark mode
+- Money left over carries into the next month; optional starting balance (More)
+- Year overview: left over per month, best/worst month, spending by category
+- Savings goals: set money aside and see what's still free
 
 ## Setup
 
@@ -23,7 +26,7 @@ Shared income & expense tracker for two people. Next.js 16 + Supabase, installab
 
 1. Create a free project at <https://supabase.com>.
 2. **SQL Editor** → paste and run each file in `supabase/migrations/`, oldest first
-   (`20261030000000_init.sql`, `20261031000000_hardening.sql`, `20261101000000_carry_over.sql`, `20261101000100_category_names.sql`).
+   (`20261030000000_init.sql`, `20261031000000_hardening.sql`, `20261101000000_carry_over.sql`, `20261101000100_category_names.sql`, `20261102000000_year_goals.sql`).
 3. **Authentication → Sign In / Providers → Email**: turn **off** "Confirm email" (simplest for two people),
    or keep it on and add `https://<your-domain>/auth/callback` under **Authentication → URL Configuration → Redirect URLs**.
 4. **Project Settings → API Keys**: copy the project URL and the **publishable** key.

@@ -4,11 +4,11 @@ import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 
-const TABLES = ["transactions", "categories", "budgets", "recurring"];
+const TABLES = ["transactions", "categories", "budgets", "recurring", "goals"];
 
 /**
  * Refreshes the current page when the other household member changes an
- * entry, category, budget or recurring rule, and when the app comes back to the foreground.
+ * entry, category, budget, recurring rule or goal, and when the app comes back to the foreground.
  */
 export function RealtimeSync() {
   const router = useRouter();

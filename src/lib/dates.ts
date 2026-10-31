@@ -51,7 +51,7 @@ export function formatMonth(month: string, locale: Locale) {
   );
 }
 
-/** "Today", "Yesterday" or "Mon 27 Oct". */
+/** "Today", "Yesterday", "Mon 27 Oct", or "Mon 27 Oct 2025" for another year. */
 export function formatDay(
   date: string,
   today: string,
@@ -64,6 +64,7 @@ export function formatDay(
     weekday: "short",
     day: "numeric",
     month: "short",
+    year: date.slice(0, 4) === today.slice(0, 4) ? undefined : "numeric",
     timeZone: "UTC",
   });
 }

@@ -3,7 +3,9 @@ import Link from "next/link";
 import {
   ArrowDownLeft,
   ArrowUpRight,
+  ChartColumn,
   ChevronRight,
+  PiggyBank,
   TrendingDown,
   TrendingUp,
   Wallet,
@@ -15,6 +17,7 @@ import {
   getCashBalance,
   getCategories,
   getContext,
+  getGoals,
   getTransactions,
 } from "@/lib/data";
 import { isValidMonth, monthOf, monthRange, shiftMonth } from "@/lib/dates";
@@ -61,13 +64,14 @@ async function Dashboard({ searchParams }: { searchParams: PageProps<"/[lang]">[
     if (sameDay < prevRange.end) prevRange.end = sameDay;
   }
 
-  const [txs, prevTxs, categories, budgets, cash, carried] = await Promise.all([
+  const [txs, prevTxs, categories, budgets, cash, carried, goals] = await Promise.all([
     getTransactions(monthRange(month)),
     getTransactions(prevRange),
     getCategories(),
     getBudgets(),
     getCashBalance(),
     getBalanceBefore(`${month}-01`),
+    getGoals(),
   ]);
   const catById = new Map(categories.map((c) => [c.id, c]));
   const memberById = new Map(ctx.members.map((p) => [p.id, p]));
@@ -88,6 +92,8 @@ async function Dashboard({ searchParams }: { searchParams: PageProps<"/[lang]">[
     : isCurrent
       ? short ? t.dashboard.overspentThisMonth : t.dashboard.leftThisMonth
       : short ? t.dashboard.overspent : t.dashboard.balance;
+  // Money set aside for goals is part of what's available now, but not free to spend.
+  const inGoals = goals.reduce((s, g) => s + g.saved_cents, 0);
   const signed = (cents: number) => `${cents < 0 ? "−" : "+"}${money(Math.abs(cents))}`;
   const expenseDiff = expenses - prevExpenses;
 
@@ -134,6 +140,19 @@ async function Dashboard({ searchParams }: { searchParams: PageProps<"/[lang]">[
               {t.dashboard.carried} <span className="font-semibold tabular-nums">{signed(carried)}</span>
             </span>
           </p>
+        )}
+        {isCurrent && inGoals > 0 && (
+          <Link
+            href="/goals"
+            className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-[13px] text-on-pine/80 underline-offset-4 hover:underline"
+          >
+            <span>
+              {t.dashboard.inGoals} <span className="font-semibold tabular-nums">{money(inGoals)}</span>
+            </span>
+            <span>
+              {t.dashboard.free} <span className="font-semibold tabular-nums">{money(total - inGoals)}</span>
+            </span>
+          </Link>
         )}
         <div className="mt-6 grid grid-cols-2 divide-x divide-on-pine/15 rounded-[16px] bg-on-pine/10">
           <TotalLink
@@ -188,6 +207,33 @@ async function Dashboard({ searchParams }: { searchParams: PageProps<"/[lang]">[
           {t.dashboard.count}
         </span>
       </Link>
+
+      <div className="mt-3 grid grid-cols-2 gap-3">
+        <Link
+          href="/goals"
+          className="flex items-center gap-3 rounded-[20px] border border-line bg-surface p-4 transition hover:bg-cream/60"
+        >
+          <Tile className="h-10 w-10 text-pine">
+            <PiggyBank className="h-5 w-5" strokeWidth={1.75} />
+          </Tile>
+          <span className="min-w-0">
+            <span className="block text-[14px] font-semibold leading-tight">{t.dashboard.goalsLink}</span>
+            {inGoals > 0 && <span className="block text-[13px] tabular-nums text-subtle">{money(inGoals)}</span>}
+          </span>
+        </Link>
+        <Link
+          href={`/year${month.slice(0, 4) === current.slice(0, 4) ? "" : `?y=${month.slice(0, 4)}`}`}
+          className="flex items-center gap-3 rounded-[20px] border border-line bg-surface p-4 transition hover:bg-cream/60"
+        >
+          <Tile className="h-10 w-10 text-pine">
+            <ChartColumn className="h-5 w-5" strokeWidth={1.75} />
+          </Tile>
+          <span className="min-w-0">
+            <span className="block text-[14px] font-semibold leading-tight">{t.dashboard.yearLink}</span>
+            <span className="block text-[13px] tabular-nums text-subtle">{month.slice(0, 4)}</span>
+          </span>
+        </Link>
+      </div>
 
       {budgetRows.length > 0 && (
         <Section title={t.dashboard.budgets} action={<TextLink href="/budgets">{t.common.edit}</TextLink>}>

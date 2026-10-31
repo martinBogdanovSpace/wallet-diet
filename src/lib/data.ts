@@ -5,7 +5,7 @@ import { connection } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { categoryNames, localizedCategoryName, type CategoryNames } from "@/i18n/dictionaries";
 import { getI18n } from "@/i18n/server";
-import type { Budget, Category, Household, Profile, Recurring, Transaction } from "@/lib/types";
+import type { Budget, Category, Goal, Household, Profile, Recurring, Transaction, YearSummary } from "@/lib/types";
 
 /** The signed-in user's id, or a redirect to /login. */
 export const getUserId = cache(async () => {
@@ -88,6 +88,32 @@ export async function getTransactions(range: { start: string; end: string }) {
   return data as Transaction[];
 }
 
+export const SEARCH_LIMIT = 500;
+
+/**
+ * Entries from any month whose note contains the text, or whose category is one of `categoryIds`
+ * (the categories whose name matches, worked out by the caller). Newest first, at most SEARCH_LIMIT.
+ */
+export async function searchTransactions(text: string, categoryIds: string[]) {
+  const { supabase, household } = await getContext();
+  // Quoted, so commas and brackets in the text don't break the filter; "*" is the wildcard.
+  const quoted = text.replace(/\*/g, "").replace(/[\\"]/g, (c) => `\\${c}`);
+  const filters = [`note.ilike."*${quoted}*"`];
+  if (categoryIds.length) filters.push(`category_id.in.(${categoryIds.join(",")})`);
+  const data = must(
+    await supabase
+      .from("transactions")
+      .select(TX_COLUMNS)
+      .eq("household_id", household.id)
+      .or(filters.join(","))
+      .order("occurred_on", { ascending: false })
+      .order("created_at", { ascending: false })
+      .limit(SEARCH_LIMIT),
+    "search results",
+  );
+  return data as Transaction[];
+}
+
 export async function getTransaction(id: string) {
   const { supabase } = await getContext();
   const data = must(await supabase.from("transactions").select(TX_COLUMNS).eq("id", id).maybeSingle(), "entry");
@@ -112,6 +138,35 @@ export async function getBalanceBefore(date: string) {
     throw new Error(`Could not load carried-over balance: ${error.message}`);
   }
   return Number(data);
+}
+
+/** Money the household had before its first entry; 0 until the database has the column. */
+export async function getStartingBalance() {
+  const { supabase, household } = await getContext();
+  const data = must(await supabase.from("households").select("*").eq("id", household.id).single(), "household");
+  return Number((data as { starting_balance_cents?: number } | null)?.starting_balance_cents ?? 0);
+}
+
+/** Income and expenses per month, and expenses per category, for one year. */
+export async function getYearSummary(year: number) {
+  const { supabase } = await getContext();
+  const data = must(await supabase.rpc("year_summary", { p_year: year }), "year overview");
+  return data as YearSummary;
+}
+
+/** Savings goals; empty while the database doesn't have them yet. */
+export async function getGoals() {
+  const { supabase, household } = await getContext();
+  const { data, error } = await supabase
+    .from("goals")
+    .select("id, name, icon, target_cents, saved_cents")
+    .eq("household_id", household.id)
+    .order("created_at");
+  if (error) {
+    if (error.code === "PGRST205" || error.code === "42P01") return [];
+    throw new Error(`Could not load goals: ${error.message}`);
+  }
+  return data as Goal[];
 }
 
 export async function getBudgets() {

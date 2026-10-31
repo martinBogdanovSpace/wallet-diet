@@ -1,13 +1,14 @@
 import { Suspense } from "react";
 import Link from "next/link";
-import { ChevronRight, Download, LogOut, Repeat, Shapes, Wallet, type LucideIcon } from "lucide-react";
-import { getContext } from "@/lib/data";
+import { ChartColumn, ChevronRight, Download, LogOut, PiggyBank, Repeat, Shapes, Wallet, type LucideIcon } from "lucide-react";
+import { getContext, getStartingBalance } from "@/lib/data";
 import { getI18n } from "@/i18n/server";
 import { LanguageSwitcher } from "@/components/language-switcher";
 import { signOut } from "@/app/actions/auth";
 import { Avatar, Button, Card, Label, PageHeader, Skeleton } from "@/components/ui";
 import { EditableName } from "./editable-name";
 import { InviteCard } from "./invite-card";
+import { StartingBalance } from "./starting-balance";
 import { updateHouseholdName, updateMyName } from "@/app/actions/household";
 
 export default async function SettingsPage() {
@@ -35,11 +36,13 @@ function NavRow({ href, Icon, label }: { href: string; Icon: LucideIcon; label: 
 }
 
 async function Settings() {
-  const [ctx, { t }] = await Promise.all([getContext(), getI18n()]);
+  const [ctx, { t }, startingBalance] = await Promise.all([getContext(), getI18n(), getStartingBalance()]);
 
   return (
     <div className="space-y-4 pb-4">
       <div className="divide-y divide-line overflow-hidden rounded-[20px] border border-line bg-surface">
+        <NavRow href="/goals" Icon={PiggyBank} label={t.settings.goalsLink} />
+        <NavRow href="/year" Icon={ChartColumn} label={t.settings.yearLink} />
         <NavRow href="/recurring" Icon={Repeat} label={t.settings.recurringLink} />
         <NavRow href="/settings/categories" Icon={Shapes} label={t.settings.categoriesLink} />
         <NavRow href="/cash" Icon={Wallet} label={t.settings.cashLink} />
@@ -60,6 +63,7 @@ async function Settings() {
       <Card className="space-y-5">
         <EditableName label={t.settings.yourName} value={ctx.me.name} onSave={updateMyName} />
         <EditableName label={t.settings.householdName} value={ctx.household.name} onSave={updateHouseholdName} />
+        <StartingBalance cents={startingBalance} />
         <div>
           <Label>{t.settings.members}</Label>
           <ul className="space-y-2.5">

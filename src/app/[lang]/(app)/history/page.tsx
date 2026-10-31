@@ -1,6 +1,6 @@
 import { Suspense } from "react";
 import { ArrowDownLeft, ArrowUpRight } from "lucide-react";
-import { getCategories, getContext, getTransactions } from "@/lib/data";
+import { getCategories, getContext, getTransactions, SEARCH_LIMIT, searchTransactions } from "@/lib/data";
 import { formatDay, isValidMonth, monthOf, monthRange } from "@/lib/dates";
 import { getI18n } from "@/i18n/server";
 import { PageHeader, Skeleton } from "@/components/ui";
@@ -40,17 +40,25 @@ async function History({ searchParams }: { searchParams: PageProps<"/[lang]/hist
     q: str(sp.q),
   };
 
-  const [all, categories] = await Promise.all([getTransactions(monthRange(month)), getCategories()]);
+  const categories = await getCategories();
   const catById = new Map(categories.map((c) => [c.id, c]));
   const memberById = new Map(ctx.members.map((p) => [p.id, p]));
 
-  // Search looks at the note and the category name, ignoring case.
+  // Search looks at the note and the category name in either language, ignoring case, in every month.
   const needle = filters.q?.toLocaleLowerCase(locale);
-  const matches = (tx: Transaction) => {
-    if (!needle) return true;
-    const category = tx.category_id ? catById.get(tx.category_id)?.name : undefined;
-    return [tx.note, category].some((text) => text?.toLocaleLowerCase(locale).includes(needle));
+  const found = (text: string | null | undefined) => !!needle && !!text?.toLocaleLowerCase(locale).includes(needle);
+  const categoryMatches = (id: string | null) => {
+    const c = id ? catById.get(id) : undefined;
+    return !!c && [c.name, ...Object.values(c.names)].some(found);
   };
+  const searching = !!filters.q;
+  const all = searching
+    ? await searchTransactions(
+        filters.q!,
+        categories.filter((c) => categoryMatches(c.id)).map((c) => c.id),
+      )
+    : await getTransactions(monthRange(month));
+  const matches = (tx: Transaction) => !searching || found(tx.note) || categoryMatches(tx.category_id);
 
   const txs = all.filter(
     (tx) =>
@@ -77,7 +85,14 @@ async function History({ searchParams }: { searchParams: PageProps<"/[lang]/hist
 
   return (
     <div className="pb-4">
-      <MonthSwitcher month={month} current={current} basePath="/history" params={{ ...filters }} />
+      {searching ? (
+        <p className="text-sm text-subtle">
+          {t.history.searchAll}
+          {all.length >= SEARCH_LIMIT && ` · ${f(t.history.searchLimit, { count: SEARCH_LIMIT })}`}
+        </p>
+      ) : (
+        <MonthSwitcher month={month} current={current} basePath="/history" params={{ ...filters }} />
+      )}
       <HistoryFilters
         members={ctx.members}
         categories={categories.filter((c) => !c.archived || c.id === filters.cat)}
