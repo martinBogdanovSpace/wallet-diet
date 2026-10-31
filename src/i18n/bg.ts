@@ -21,7 +21,7 @@ export const bg: Dict = {
     back: "Назад",
     prevMonth: "Предишен месец",
     nextMonth: "Следващ месец",
-    confirmDelete: "Докоснете пак за изтриване",
+    confirmDelete: "Да, изтрий",
     clear: "Изчисти",
     saved: "Записано",
     deleted: "Изтрито",

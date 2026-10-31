@@ -110,7 +110,7 @@ export function QuickAdd({
   // The delete button asks for a second tap, but only for a few seconds.
   useEffect(() => {
     if (!confirmingDelete) return;
-    const timer = setTimeout(() => setConfirmingDelete(false), 3000);
+    const timer = setTimeout(() => setConfirmingDelete(false), 5000);
     return () => clearTimeout(timer);
   }, [confirmingDelete]);
 
@@ -333,25 +333,38 @@ export function QuickAdd({
             onClick={remove}
             disabled={pending}
             aria-label={confirmingDelete ? t.common.confirmDelete : t.common.delete}
-            className={`flex h-[54px] shrink-0 items-center justify-center gap-2 rounded-[16px] border text-sm font-semibold transition active:scale-[0.98] disabled:opacity-60 ${
+            // Stays where the first tap was, so the second tap lands on it.
+            className={`flex h-[54px] min-w-0 items-center justify-center gap-2 rounded-[16px] border text-[15px] font-semibold transition active:scale-[0.98] disabled:opacity-60 ${
               confirmingDelete
-                ? "border-danger bg-danger px-4 text-white"
-                : "w-[54px] border-expense/25 bg-surface text-danger"
+                ? "flex-1 border-danger bg-danger px-3 text-white"
+                : "w-[54px] shrink-0 border-expense/25 bg-surface text-danger"
             }`}
           >
-            <Trash2 className="h-5 w-5" />
-            {confirmingDelete && t.common.confirmDelete}
+            <Trash2 className="h-5 w-5 shrink-0" />
+            {confirmingDelete && <span className="truncate">{t.common.confirmDelete}</span>}
           </button>
         )}
-        <button
-          type="button"
-          onClick={submit}
-          disabled={pending}
-          className="flex h-[54px] flex-1 items-center justify-center gap-2 rounded-[16px] bg-pine text-base font-semibold text-on-pine shadow-sm transition hover:bg-pine-dark active:scale-[0.98] disabled:opacity-60"
-        >
-          {pending && <LoaderCircle className="h-5 w-5 animate-spin" />}
-          {pending ? t.common.saving : editing ? t.common.saveChanges : t.common.save}
-        </button>
+        {/* While a delete waits for its second tap, the other button backs out instead of saving. */}
+        {confirmingDelete ? (
+          <button
+            type="button"
+            onClick={() => setConfirmingDelete(false)}
+            disabled={pending}
+            className="flex h-[54px] shrink-0 items-center justify-center rounded-[16px] border border-line-strong bg-surface px-5 text-[15px] font-semibold text-ink transition hover:bg-cream-200 active:scale-[0.98] disabled:opacity-60"
+          >
+            {t.common.cancel}
+          </button>
+        ) : (
+          <button
+            type="button"
+            onClick={submit}
+            disabled={pending}
+            className="flex h-[54px] min-w-0 flex-1 items-center justify-center gap-2 rounded-[16px] bg-pine text-base font-semibold text-on-pine shadow-sm transition hover:bg-pine-dark active:scale-[0.98] disabled:opacity-60"
+          >
+            {pending && <LoaderCircle className="h-5 w-5 animate-spin" />}
+            {pending ? t.common.saving : editing ? t.common.saveChanges : t.common.save}
+          </button>
+        )}
       </div>
     </Sheet>
   );

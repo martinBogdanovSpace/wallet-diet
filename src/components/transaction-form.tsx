@@ -238,23 +238,31 @@ export function TransactionForm({
               onClick={remove}
               disabled={pending}
               aria-label={confirmingDelete ? t.common.confirmDelete : t.common.delete}
+              className={confirmingDelete ? "min-w-0 flex-1" : ""}
             >
-              <Trash2 className="h-[18px] w-[18px]" />
-              {confirmingDelete && t.common.confirmDelete}
+              <Trash2 className="h-[18px] w-[18px] shrink-0" />
+              {confirmingDelete && <span className="truncate">{t.common.confirmDelete}</span>}
             </Button>
           )}
-          <Button className="flex-1" disabled={pending}>
-            {pending ? (
-              <>
-                <LoaderCircle className="h-[18px] w-[18px] animate-spin" />
-                {t.common.saving}
-              </>
-            ) : initial ? (
-              t.common.saveChanges
-            ) : (
-              t.common.save
-            )}
-          </Button>
+          {/* While a delete waits for its second tap, the other button backs out instead of saving. */}
+          {confirmingDelete ? (
+            <Button type="button" variant="secondary" onClick={() => setConfirmingDelete(false)} disabled={pending}>
+              {t.common.cancel}
+            </Button>
+          ) : (
+            <Button className="flex-1" disabled={pending}>
+              {pending ? (
+                <>
+                  <LoaderCircle className="h-[18px] w-[18px] animate-spin" />
+                  {t.common.saving}
+                </>
+              ) : initial ? (
+                t.common.saveChanges
+              ) : (
+                t.common.save
+              )}
+            </Button>
+          )}
         </div>
       </div>
     </form>

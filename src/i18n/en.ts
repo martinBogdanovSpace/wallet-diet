@@ -19,7 +19,7 @@ export const en = {
     back: "Back",
     prevMonth: "Previous month",
     nextMonth: "Next month",
-    confirmDelete: "Tap again to delete",
+    confirmDelete: "Yes, delete",
     clear: "Clear",
     saved: "Saved",
     deleted: "Deleted",
