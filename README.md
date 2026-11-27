@@ -1,6 +1,6 @@
 # Wallet Diet
 
-Shared income & expense tracker for two people. Next.js 16 + Supabase, installable as a PWA.
+Shared income & expense tracker for whole household. Next.js 16 + Supabase, installable as a PWA.
 
 ## Features
 
