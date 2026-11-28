@@ -71,3 +71,6 @@ never against the real project.
    `npm run test:e2e:ui` shows them running.
 3. Screenshots of every screen (Bulgarian/English, light/dark) land in `e2e-screens/`.
 4. `npm run db:stop` stops the local Supabase. Its dashboard is at <http://127.0.0.1:54323> while it runs.
+
+## License
+[MIT](LICENSE): free to use, change and share; keep the copyright notice.

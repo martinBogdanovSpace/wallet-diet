@@ -6,13 +6,9 @@ import { createClient } from "@/lib/supabase/server";
 import { getActionI18n } from "@/i18n/server";
 import { friendlyError } from "@/i18n/errors";
 import { MAX_NAME } from "@/lib/limits";
+import { safeNext } from "@/lib/safe-next";
 
 export type AuthState = { error?: string; message?: string };
-
-function safeNext(next: FormDataEntryValue | null) {
-  const value = typeof next === "string" ? next : "";
-  return value.startsWith("/") && !value.startsWith("//") ? value : "/";
-}
 
 export async function signIn(_: AuthState, formData: FormData): Promise<AuthState> {
   const { t } = await getActionI18n();

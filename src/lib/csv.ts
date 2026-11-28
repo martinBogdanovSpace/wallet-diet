@@ -8,6 +8,15 @@ export function csvLine(fields: (string | number | null | undefined)[], delimite
     .join(delimiter);
 }
 
+/**
+ * Text someone typed (a note, a category or person's name). Excel runs a cell that starts with
+ * = + - @ as a formula, so such text gets a leading apostrophe and is shown as plain text.
+ */
+export function csvText(value: string | null | undefined) {
+  const text = value ?? "";
+  return /^[=+\-@\t\r]/.test(text) ? `'${text}` : text;
+}
+
 /** Cents as a plain number Excel can sum: "-12.50" or, for Bulgarian Excel, "-12,50". */
 export function csvAmount(cents: number, decimal: "." | ",") {
   const sign = cents < 0 ? "-" : "";
