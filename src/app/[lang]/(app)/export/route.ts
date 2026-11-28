@@ -1,5 +1,5 @@
 import { getContext } from "@/lib/data";
-import { csvAmount, csvLine } from "@/lib/csv";
+import { csvAmount, csvLine, csvText } from "@/lib/csv";
 import { DEFAULT_LOCALE, isLocale } from "@/i18n/config";
 import { DICTIONARIES, localizedCategoryName } from "@/i18n/dictionaries";
 import type { Transaction } from "@/lib/types";
@@ -53,10 +53,10 @@ export async function GET(_: Request, ctx: RouteContext<"/[lang]/export">) {
           tx.occurred_on,
           typeName[tx.type],
           csvAmount(tx.type === "expense" ? -tx.amount_cents : tx.amount_cents, decimal),
-          tx.category_id ? catName.get(tx.category_id) : "",
+          csvText(tx.category_id ? catName.get(tx.category_id) : ""),
           t.methods[tx.method],
-          memberName.get(tx.user_id) ?? "",
-          tx.note,
+          csvText(memberName.get(tx.user_id)),
+          csvText(tx.note),
         ],
         delimiter,
       ),
